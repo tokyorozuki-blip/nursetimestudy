@@ -278,19 +278,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className={`modal-card modal-setup relative ${step === 'welcome' ? 'max-w-[1000px] w-full p-6 md:p-8' : ''}`}>
-        {/* ログイン中の切り替え・情報変更時：右上に「閉じる (✖)」ボタンを表示 */}
-        {!isInitialSetup && onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-full transition-all cursor-pointer shadow-xs flex items-center gap-1 text-xs font-bold px-3 py-1.5 z-10"
-            title="モーダルを閉じる"
-          >
-            <X className="w-4 h-4 text-slate-600" />
-            <span>閉じる</span>
-          </button>
-        )}
+      <div className={`modal-card modal-setup ${step === 'welcome' ? 'max-w-[1000px] w-full p-6 md:p-8' : ''}`}>
         {/* ==================================================== */}
         {/* スタート選択メニュー画面 ('welcome')                 */}
         {/* ==================================================== */}
@@ -396,20 +384,6 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </div>
                 <ChevronRight className="w-7 h-7 text-rose-600 group-hover:translate-x-2 transition-transform shrink-0" />
               </button>
-
-              {/* ⚪ 5. ログイン中の切り替え用：キャンセル / タイムスタディ画面へ戻るボタン */}
-              {!isInitialSetup && onClose && (
-                <div className="w-full max-w-[1000px] pt-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="w-full py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-2xl text-sm md:text-base flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 cursor-pointer"
-                  >
-                    <X className="w-5 h-5 text-slate-600" />
-                    <span>タイムスタディ画面へ戻る (キャンセル)</span>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}

@@ -42,40 +42,25 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="header-right-actions">
           {user ? (
-            <div className="flex items-center gap-1.5">
-              <button className="user-profile-badge" onClick={onEditUser} title="登録属性の変更">
-                <User className="w-4 h-4 text-sky-600" />
-                <div className="user-info-text">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {user.staffId && (
-                      <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold border border-slate-200">
-                        ID:{user.staffId}
-                      </span>
-                    )}
-                    <span className="user-name">{user.name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${user.role === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>
-                      {user.role || '看護師'}
+            <div className="user-profile-badge">
+              <User className="w-4 h-4 text-sky-600" />
+              <div className="user-info-text">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {user.staffId && (
+                    <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold border border-slate-200">
+                      ID:{user.staffId}
                     </span>
-                  </div>
-                  <span className="user-dept">
-                    <Building2 className="inline-icon" />
-                    {user.department} ({user.ageGroup})
+                  )}
+                  <span className="user-name">{user.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${user.role === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>
+                    {user.role || '看護師'}
                   </span>
                 </div>
-                <Edit3 className="w-3.5 h-3.5 text-slate-400 ml-1" />
-              </button>
-
-              {onLogoutUser && (
-                <button
-                  type="button"
-                  className="p-2 text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex items-center gap-1 text-xs"
-                  onClick={onLogoutUser}
-                  title="別の職員IDでログイン（ログアウト）"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">切替</span>
-                </button>
-              )}
+                <span className="user-dept">
+                  <Building2 className="inline-icon" />
+                  {user.department} ({user.ageGroup})
+                </span>
+              </div>
             </div>
           ) : (
             <button className="user-profile-badge" onClick={onEditUser}>
