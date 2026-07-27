@@ -3,7 +3,7 @@ import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole } from '../types';
 import { DEPARTMENTS } from '../constants';
 import { Dashboard } from './Dashboard';
 import { exportRecordsToCSV } from '../utils/exportCsv';
-import { getDeptTargets, saveDeptTargets } from '../utils/storage';
+import { getDeptTargets, saveDeptTargets, deleteSubmittedRecordsFromVercel } from '../utils/storage';
 import {
   ShieldCheck,
   Building2,
@@ -32,6 +32,7 @@ interface AdminPanelProps {
   onDeleteTask: (taskId: string) => void;
   onClearAllRecords: () => void;
   onDeleteRecordsByDate: (dateStr: string) => void;
+  onDeleteCloudRecords?: (targetDate?: string) => Promise<boolean>;
   onLogout: () => void;
   onGenerateMockData: () => void;
   onOpenEditMaster?: () => void;
@@ -45,6 +46,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onDeleteTask,
   onClearAllRecords,
   onDeleteRecordsByDate,
+  onDeleteCloudRecords,
   onLogout,
   onGenerateMockData,
   onOpenEditMaster,
@@ -74,6 +76,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // 削除の2段階二重確認モーダル状態
   const [dateDeleteStep, setDateDeleteStep] = useState<0 | 1 | 2>(0); // 0:なし, 1:第1段階, 2:第2段階最終決定
   const [allDeleteStep, setAllDeleteStep] = useState<0 | 1 | 2>(0);   // 0:なし, 1:第1段階, 2:第2段階最終決定
+
+  // クラウドデータダウンロード後削除モーダル状態
+  const [cloudDeleteStep, setCloudDeleteStep] = useState<0 | 1 | 2>(0); // 0:なし, 1:ダウンロード完了＆削除確認, 2:最終確証
+  const [cloudDeleteMode, setCloudDeleteMode] = useState<'all' | 'date'>('all');
+  const [cloudIsDeleting, setCloudIsDeleting] = useState<boolean>(false);
 
   // 部署別提出人数集計
   const deptProgressStats = DEPARTMENTS.map((dept) => {
@@ -571,6 +578,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
             </div>
 
+            {/* ★ クラウドデータダウンロード ＆ クラウドDB削除 */}
+            <div className="data-card border-2 border-purple-300 bg-purple-50/40">
+              <Download className="w-6 h-6 text-purple-600 mb-2" />
+              <h4 className="text-purple-900 font-extrabold">クラウドDBからダウンロード後に削除</h4>
+              <p className="text-slate-600 text-xs">
+                クラウドDB（Vercel）上の提出データをCSV形式でダウンロードして保存した後、クラウド上のデータを消去します（確認ダイアログ付き）。
+              </p>
+
+              <div className="flex flex-col gap-2 mt-4">
+                <button
+                  type="button"
+                  className="px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  onClick={() => {
+                    if (records.length === 0) {
+                      alert('ダウンロード・削除対象の提出データが存在しません。');
+                      return;
+                    }
+                    exportRecordsToCSV(records, `全看護師_クラウドタイムスタディ一括データ_${todayStr}.csv`);
+                    setCloudDeleteMode('all');
+                    setCloudDeleteStep(1);
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                  <span>全件CSVをダウンロード後にクラウド削除</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  onClick={() => {
+                    if (dateTargetRecordsCount === 0) {
+                      alert(`対象日 (${deleteTargetDate}) の提出データは存在しません。`);
+                      return;
+                    }
+                    const targetRecs = records.filter((r) => r.user.targetDate === deleteTargetDate);
+                    exportRecordsToCSV(targetRecs, `看護タイムスタディ_${deleteTargetDate}_データ.csv`);
+                    setCloudDeleteMode('date');
+                    setCloudDeleteStep(1);
+                  }}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>指定日 ({deleteTargetDate}) をDL後にクラウド削除</span>
+                </button>
+              </div>
+            </div>
+
             {/* ★ 1. 日付指定データの削除 (2段階二重確認) */}
             <div className="data-card warning-card">
               <Calendar className="w-6 h-6 text-amber-600 mb-2" />
@@ -709,6 +762,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
               <button className="btn-danger font-bold bg-red-700" onClick={handleFinalDeleteAll}>
                 【完全実行】すべての調査データを即座に削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ★ クラウドデータダウンロード後削除: 第1段階確認モーダル */}
+      {cloudDeleteStep === 1 && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="setup-header">
+              <Check className="w-10 h-10 text-emerald-500 mx-auto mb-2 bg-emerald-100 p-2 rounded-full" />
+              <h2>【確認: 1/2】CSVデータのダウンロードが完了しました</h2>
+              <p className="setup-sub">
+                {cloudDeleteMode === 'all'
+                  ? `全件データ (計 ${records.length} 件) のCSVファイルをダウンロードしました。`
+                  : `指定日 (${deleteTargetDate}) のデータ (計 ${dateTargetRecordsCount} 件) のCSVファイルをダウンロードしました。`}
+                <br />
+                <strong className="text-purple-700">クラウドDB上のデータを削除してもよろしいですか？</strong>
+              </p>
+            </div>
+            <div className="modal-buttons-flex">
+              <button className="btn-secondary" onClick={() => setCloudDeleteStep(0)}>
+                キャンセル (削除せず保持)
+              </button>
+              <button className="btn-primary bg-purple-600 hover:bg-purple-700" onClick={() => setCloudDeleteStep(2)}>
+                次へ進む (クラウド削除の最終確認へ)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ★ クラウドデータダウンロード後削除: 第2段階最終決定モーダル */}
+      {cloudDeleteStep === 2 && (
+        <div className="modal-overlay">
+          <div className="modal-card border-purple-600 border-2">
+            <div className="setup-header">
+              <Trash2 className="w-12 h-12 text-purple-600 mx-auto mb-2 animate-bounce" />
+              <h2 className="text-purple-900">【最終確定: 2/2】本当にクラウド上のデータを消去しますか？</h2>
+              <p className="setup-sub text-purple-800 font-bold">
+                {cloudDeleteMode === 'all'
+                  ? `クラウドDB上の全 ${records.length} 件のデータが完全消去されます。`
+                  : `クラウドDB上の ${deleteTargetDate} の全 ${dateTargetRecordsCount} 件のデータが完全消去されます。`}
+                <br />
+                ※手元にダウンロードされたCSVファイルは安全に保存されています。
+              </p>
+            </div>
+            <div className="modal-buttons-flex">
+              <button className="btn-secondary" disabled={cloudIsDeleting} onClick={() => setCloudDeleteStep(0)}>
+                中止して保護する
+              </button>
+              <button
+                className="btn-danger font-bold bg-purple-700 hover:bg-purple-800"
+                disabled={cloudIsDeleting}
+                onClick={async () => {
+                  setCloudIsDeleting(true);
+                  try {
+                    const targetDateParam = cloudDeleteMode === 'date' ? deleteTargetDate : undefined;
+                    let success = false;
+                    if (onDeleteCloudRecords) {
+                      success = await onDeleteCloudRecords(targetDateParam);
+                    } else {
+                      success = await deleteSubmittedRecordsFromVercel(targetDateParam);
+                      if (onRefreshRecords) await onRefreshRecords();
+                    }
+                    if (success) {
+                      alert('クラウドDB上のデータ削除が正常に完了しました。');
+                    }
+                  } catch (err: any) {
+                    alert(`削除処理中にエラーが発生しました: ${err?.message || err}`);
+                  } finally {
+                    setCloudIsDeleting(false);
+                    setCloudDeleteStep(0);
+                  }
+                }}
+              >
+                {cloudIsDeleting ? 'クラウド削除を実行中...' : '【実行】クラウドDB上のデータを完全削除する'}
               </button>
             </div>
           </div>

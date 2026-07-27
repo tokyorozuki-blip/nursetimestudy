@@ -10,6 +10,7 @@ import {
   clearDraftSlots,
   getAllSubmittedRecords,
   fetchSubmittedRecordsFromVercel,
+  deleteSubmittedRecordsFromVercel,
   saveSubmittedRecord,
   getCustomTasks,
   saveCustomTasks,
@@ -192,6 +193,25 @@ export function App() {
     alert(`${targetDateStr} の提出データを全件削除しました。`);
   };
 
+  // クラウドDBのデータ削除処理 (全件または指定日)
+  const handleDeleteCloudRecords = async (targetDateStr?: string): Promise<boolean> => {
+    const ok = await deleteSubmittedRecordsFromVercel(targetDateStr);
+    if (ok) {
+      if (targetDateStr) {
+        setAllRecords((prev) => {
+          const updated = prev.filter((r) => r.user.targetDate !== targetDateStr);
+          localStorage.setItem('nurse_timestudy_all_submitted_records', JSON.stringify(updated));
+          return updated;
+        });
+      } else {
+        setAllRecords([]);
+        localStorage.removeItem('nurse_timestudy_all_submitted_records');
+      }
+      return true;
+    }
+    return false;
+  };
+
   // コマの業務保存 (TaskSelectModal から呼ばれる)
   const handleSaveSlotTasks = (slotId: string, taskIds: string[]) => {
     const updated = slots.map((s) =>
@@ -367,6 +387,7 @@ export function App() {
             onDeleteTask={handleDeleteTask}
             onClearAllRecords={handleClearAllRecords}
             onDeleteRecordsByDate={handleDeleteRecordsByDate}
+            onDeleteCloudRecords={handleDeleteCloudRecords}
             onLogout={() => {
               setIsAdminAuthenticated(false);
               setActiveTab('input');

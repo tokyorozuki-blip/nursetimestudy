@@ -52,6 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('ALL');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('ALL');
+  const [selectedDate, setSelectedDate] = useState<string>('ALL');
   const [searchName, setSearchName] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string>('');
@@ -59,6 +60,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [dedupeMode, setDedupeMode] = useState<'latest' | 'all'>('latest');
   const [showSummaryModal, setShowSummaryModal] = useState<boolean>(false);
   const [copiedText, setCopiedText] = useState<boolean>(false);
+
+  // データ内に存在する全調査対象日を抽出（降順）
+  const availableDates = useMemo(() => {
+    const datesSet = new Set<string>();
+    records.forEach((rec) => {
+      if (rec.user && rec.user.targetDate) {
+        datesSet.add(rec.user.targetDate);
+      }
+    });
+    return Array.from(datesSet).sort().reverse();
+  }, [records]);
 
   // 同一人物（職員ID + 調査対象日）の複数提出データを自動デデュープ（入力内容がある有効なデータを優先選択）
   const processedRecords = useMemo(() => {
@@ -98,13 +110,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         selectedDepartment === 'ALL' || rec.user.department === selectedDepartment;
       const matchAge =
         selectedAgeGroup === 'ALL' || rec.user.ageGroup === selectedAgeGroup;
+      const matchDate =
+        selectedDate === 'ALL' || rec.user.targetDate === selectedDate;
       const matchName =
         !searchName ||
         rec.user.name.toLowerCase().includes(searchName.toLowerCase()) ||
         (rec.user.staffId && rec.user.staffId.includes(searchName));
-      return matchRole && matchDept && matchAge && matchName;
+      return matchRole && matchDept && matchAge && matchDate && matchName;
     });
-  }, [processedRecords, selectedRole, selectedDepartment, selectedAgeGroup, searchName]);
+  }, [processedRecords, selectedRole, selectedDepartment, selectedAgeGroup, selectedDate, searchName]);
+
 
   // 実人数 (ユニーク職員数) の算出
   const uniqueUserCount = useMemo(() => {
@@ -405,6 +420,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* フィルタバー */}
       <div className="filter-bar">
+        <div className="filter-item">
+          <CalendarRange className="w-4 h-4 text-purple-600" />
+          <label>調査対象日絞り込み:</label>
+          <select
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="font-bold text-slate-800"
+          >
+            <option value="ALL">全期間・全対象日 ({availableDates.length}日分)</option>
+            {availableDates.map((dateStr) => (
+              <option key={dateStr} value={dateStr}>
+                {dateStr}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="filter-item">
           <Filter className="w-4 h-4 text-slate-500" />
           <label>職種絞り込み:</label>

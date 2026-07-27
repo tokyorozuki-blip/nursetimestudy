@@ -309,6 +309,21 @@ export async function submitRecordToVercel(record: TimeStudyRecord): Promise<boo
   }
 }
 
+/** VercelクラウドDBから提出データを完全削除 */
+export async function deleteSubmittedRecordsFromVercel(targetDate?: string): Promise<boolean> {
+  try {
+    const url = targetDate ? `/api/records?targetDate=${encodeURIComponent(targetDate)}` : '/api/records';
+    const res = await fetch(url, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (err) {
+    console.log('Vercel delete records status:', err);
+    return false;
+  }
+}
+
+
 const DEPT_TARGETS_KEY = 'nurse_timestudy_dept_targets';
 
 /** 各部署の回答対象者数（目標人数）設定の保存と取得 */
