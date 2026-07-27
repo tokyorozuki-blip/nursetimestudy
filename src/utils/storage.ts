@@ -52,10 +52,32 @@ export function getOrCreateDeviceId(): string {
   return deviceId;
 }
 
-// 全登録ユーザーDBの取得
+// 全登録ユーザーDBの取得（ローカル ＆ Vercelクラウド非同期）
 export function getAllRegisteredUsers(): UserProfile[] {
   const users = safeParse<UserProfile[]>(USERS_DB_KEY, []);
   return Array.isArray(users) ? users : [];
+}
+
+/** Vercelクラウドから全端末の登録済み職員リストを取得し二重登録防止 */
+export async function fetchUsersFromVercel(): Promise<UserProfile[]> {
+  const localUsers = getAllRegisteredUsers();
+  try {
+    const res = await fetch('/api/users');
+    if (res.ok) {
+      const cloudUsers = await res.json();
+      if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+        const userMap = new Map<string, UserProfile>();
+        localUsers.forEach((u) => userMap.set(u.staffId, u));
+        cloudUsers.forEach((u: UserProfile) => userMap.set(u.staffId, u));
+        const merged = Array.from(userMap.values());
+        safeSetItem(USERS_DB_KEY, JSON.stringify(merged));
+        return merged;
+      }
+    }
+  } catch (err) {
+    console.log('Vercel user sync status:', err);
+  }
+  return localUsers;
 }
 
 // 職員ID(6桁)によるユーザー検索
@@ -64,7 +86,7 @@ export function findUserByStaffId(staffId: string): UserProfile | null {
   return users.find((u) => u.staffId === staffId) || null;
 }
 
-// ユーザー情報保存（カレントログイン情報 ＆ 全ユーザーDB更新）
+// ユーザー情報保存（カレント ＆ 全ユーザーDB ＆ Vercelクラウド共有）
 export function saveUserProfile(user: UserProfile): void {
   const deviceId = user.deviceId || getOrCreateDeviceId();
   const updatedUser = { ...user, deviceId };
@@ -78,6 +100,24 @@ export function saveUserProfile(user: UserProfile): void {
     users.push(updatedUser);
   }
   safeSetItem(USERS_DB_KEY, JSON.stringify(users));
+
+  // Vercel クラウドへ保存して全端末で登録IDを共有
+  saveUserToVercel(updatedUser);
+}
+
+/** Vercelクラウドへユーザー登録を即時同期 */
+export async function saveUserToVercel(user: UserProfile): Promise<boolean> {
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user),
+    });
+    return res.ok;
+  } catch (err) {
+    console.log('Vercel save user status:', err);
+    return false;
+  }
 }
 
 // カレントログインユーザーの取得

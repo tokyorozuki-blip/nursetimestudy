@@ -8,6 +8,7 @@ interface TaskSelectModalProps {
   userRole?: JobRole;
   onSave: (slotId: string, taskIds: string[]) => void;
   onClose: () => void;
+  onOpenEditMaster?: () => void;
 }
 
 export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
@@ -16,6 +17,7 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
   userRole = '看護師',
   onSave,
   onClose,
+  onOpenEditMaster,
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [warningMsg, setWarningMsg] = useState<string>('');
@@ -81,23 +83,21 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
         <div className="flow-sub-bar flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-              userRole === '看護補助者'
-                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                : 'bg-sky-100 text-sky-800 border border-sky-300'
+              userRole === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'
             }`}>
-              【{userRole}専用】入力項目
+              {userRole}
             </span>
-            <span className="flow-hint">
-              💡 同時に行った業務を<strong>最大3つ</strong>タップして選択してください。
+            <span className="text-xs text-slate-500 font-bold">
+              あてはまる業務を選択してください（複数選択可）
             </span>
           </div>
-          {warningMsg && (
+        </div>
+        {warningMsg && (
             <div className="flow-warning">
               <AlertCircle className="w-4 h-4" />
               <span>{warningMsg}</span>
             </div>
           )}
-        </div>
 
         {/* 業務選択ボディ (カテゴリ別リスト) */}
         <div className="task-flow-body">

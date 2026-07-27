@@ -21,6 +21,7 @@ import { Timeline } from './components/Timeline';
 import { TaskSelectModal } from './components/TaskSelectModal';
 import { AdminModal } from './components/AdminModal';
 import { AdminPanel } from './components/AdminPanel';
+import { TaskMasterEditModal } from './components/TaskMasterEditModal';
 import confetti from 'canvas-confetti';
 
 export function App() {
@@ -39,11 +40,12 @@ export function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showUserSetupModal, setShowUserSetupModal] = useState<boolean>(false);
 
-  // 定型業務マスタ
+  // 定型業務マスター ＆ 編集モーダルステート
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     const saved = getCustomTasks();
     return saved && saved.length > 0 ? saved : PRESET_TASKS;
   });
+  const [showTaskMasterModal, setShowTaskMasterModal] = useState<boolean>(false);
 
   // タイムスタディスロット
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -368,6 +370,7 @@ export function App() {
               setShowUserSetupModal(true);
             }}
             onGenerateMockData={handleGenerateMockData}
+            onOpenEditMaster={() => setShowTaskMasterModal(true)}
           />
         </main>
       </div>
@@ -435,6 +438,18 @@ export function App() {
           userRole={user?.role || '看護師'}
           onSave={handleSaveSlotTasks}
           onClose={() => setActiveSlot(null)}
+        />
+      )}
+
+      {/* 定型業務マスターの変更・編集モーダル */}
+      {showTaskMasterModal && (
+        <TaskMasterEditModal
+          currentTasks={tasks}
+          onSaveTasks={(updatedTasks) => {
+            setTasks(updatedTasks);
+            saveCustomTasks(updatedTasks);
+          }}
+          onClose={() => setShowTaskMasterModal(false)}
         />
       )}
 

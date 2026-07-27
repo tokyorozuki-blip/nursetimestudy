@@ -29,6 +29,7 @@ interface AdminPanelProps {
   onDeleteRecordsByDate: (dateStr: string) => void;
   onLogout: () => void;
   onGenerateMockData: () => void;
+  onOpenEditMaster?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -40,6 +41,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onDeleteRecordsByDate,
   onLogout,
   onGenerateMockData,
+  onOpenEditMaster,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'progress' | 'master' | 'data'>('dashboard');
 
@@ -262,11 +264,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* 3. 定型業務マスタ編集 */}
+      {/* 3. 定型業務マスター管理 */}
       {activeSubTab === 'master' && (
-        <div className="admin-section">
-          <div className="section-title-row">
-            <h3 className="section-title">定型業務マスターの設定・追加</h3>
+        <div className="admin-section space-y-4">
+          <div className="section-title-row flex items-center justify-between">
+            <h3 className="section-title">定型業務マスターの一括登録・編集管理</h3>
+            {onOpenEditMaster && (
+              <button
+                type="button"
+                className="py-2 px-3.5 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+                onClick={onOpenEditMaster}
+              >
+                <span>✏️ 全定型業務マスターの自由変更・色編集ダイアログを開く</span>
+              </button>
+            )}
           </div>
 
           <form onSubmit={handleCreateTask} className="master-add-card">
