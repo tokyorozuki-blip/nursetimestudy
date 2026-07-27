@@ -39,6 +39,7 @@ interface UserSetupModalProps {
   onOpenAdmin: () => void;
   onDeleteProfile?: () => void;
   isInitialSetup?: boolean;
+  onClose?: () => void;
 }
 
 /** ステップ進捗インジケーター（共通化） */
@@ -71,6 +72,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
   onOpenAdmin,
   onDeleteProfile,
   isInitialSetup = false,
+  onClose,
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -257,8 +259,25 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
     setShowConfirmDelete(false);
   };
 
+  // 画面外（モーダル背景オーバーレイ）クリック時のキャンセル処理
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      if (step !== 'welcome') {
+        // ① ボタン選択後のサブ画面（新規登録・変更削除・管理者画面等）で画面外を押した場合：
+        // 作業内容をキャンセルし、初期選択メニュー画面へ戻る（モーダル自体は閉じない）
+        resetFormState();
+        setStep('welcome');
+      } else if (!isInitialSetup && onClose) {
+        // ② ログイン後に初期選択メニュー画面を開いた場合のみ：
+        // 画面外クリックでモーダル自体を閉じることができる
+        onClose();
+      }
+      // ※ 未ログイン状態（再アクセス・再ログイン直後）の初期選択メニュー画面では、画面外を押しても閉じない
+    }
+  };
+
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={handleOverlayClick}>
       <div className={`modal-card modal-setup ${step === 'welcome' ? 'max-w-[1000px] w-full p-6 md:p-8' : ''}`}>
         {/* ==================================================== */}
         {/* スタート選択メニュー画面 ('welcome')                 */}

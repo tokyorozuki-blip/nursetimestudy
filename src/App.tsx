@@ -462,6 +462,7 @@ export function App() {
           onOpenAdmin={handleAdminAuthSuccess}
           onDeleteProfile={handleDeleteUserProfile}
           isInitialSetup={!user}
+          onClose={() => setShowUserSetupModal(false)}
         />
       )}
 
