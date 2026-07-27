@@ -392,19 +392,33 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
 
       {/* 5. 残業追加ボタン (17:15以降) */}
-      <div className="overtime-add-wrapper my-6">
-        <button className="btn-add-overtime" onClick={onAddLateSlot}>
-          <PlusCircle className="w-4 h-4 text-purple-600" />
-          <span>＋ 残業・時間外枠を追加 (15分後に拡張)</span>
-        </button>
-      </div>
+      {!isSubmitted && (
+        <div className="overtime-add-wrapper my-6">
+          <button className="btn-add-overtime" onClick={onAddLateSlot}>
+            <PlusCircle className="w-4 h-4 text-purple-600" />
+            <span>＋ 残業・時間外枠を追加 (15分後に拡張)</span>
+          </button>
+        </div>
+      )}
 
       {/* 底部提出フッター */}
       <div className="timeline-footer">
-        <button className="btn-primary btn-large-submit" onClick={onSubmit}>
-          <Sparkles className="w-5 h-5" />
-          <span>タイムスタディを完了して提出する</span>
-        </button>
+        {!isSubmitted ? (
+          <button className="btn-primary btn-large-submit" onClick={onSubmit}>
+            <Sparkles className="w-5 h-5" />
+            <span>タイムスタディを完了して提出する</span>
+          </button>
+        ) : (
+          <div className="w-full bg-emerald-50 border-2 border-emerald-300 p-4 rounded-2xl text-center space-y-1">
+            <div className="flex items-center justify-center gap-2 text-emerald-800 font-extrabold text-base">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <span>本日のタイムスタディ提出が完了しています</span>
+            </div>
+            <p className="text-xs text-emerald-700">
+              修正する場合は、画面上部の「✏️ 修正をする」ボタンを押してください。
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
