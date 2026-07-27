@@ -22,7 +22,6 @@ import { TaskSelectModal } from './components/TaskSelectModal';
 import { AdminModal } from './components/AdminModal';
 import { AdminPanel } from './components/AdminPanel';
 import { TaskMasterEditModal } from './components/TaskMasterEditModal';
-import confetti from 'canvas-confetti';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'input' | 'admin'>('input');
@@ -326,11 +325,11 @@ export function App() {
     clearDraftSlots();
     setIsSubmitted(true);
 
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
+    try {
+      if (typeof (window as any).confetti === 'function') {
+        (window as any).confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+    } catch {}
 
     alert('タイムスタディの提出が完了しました！ご協力ありがとうございました。');
   };
