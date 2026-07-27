@@ -74,8 +74,8 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // ステップ状態: 'welcome' (スタート選択) | 'id' (1/3: 職員ID) | 'profile' (2/3: ユーザー登録) | 'shift' (3/3: 調査日・勤務シフト) | 'admin' (管理者認証)
-  const [step, setStep] = useState<'welcome' | 'id' | 'profile' | 'shift' | 'admin'>('welcome');
+  // ステップ状態: 'welcome' | 'id' | 'profile' | 'shift' | 'admin' | 'edit_id' | 'edit_profile'
+  const [step, setStep] = useState<'welcome' | 'id' | 'profile' | 'shift' | 'admin' | 'edit_id' | 'edit_profile'>('welcome');
 
   const [staffId, setStaffId] = useState<string>(initialUser?.staffId || '');
   const [name, setName] = useState<string>(initialUser?.name || '');
@@ -87,6 +87,10 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
     initialUser?.ageGroup || '25〜29歳'
   );
 
+  // 変更・削除用ID入力ステート
+  const [editStaffId, setEditStaffId] = useState<string>(initialUser?.staffId || '');
+  const [editTargetUser, setEditTargetUser] = useState<UserProfile | null>(initialUser);
+
   // 入力日 ＆ 勤務シフト
   const [targetDate, setTargetDate] = useState<string>(initialTargetDate || todayStr);
   const [shiftType, setShiftType] = useState<ShiftType>(initialShiftType);
@@ -97,6 +101,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
   const [adminPassword, setAdminPassword] = useState<string>('');
 
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [successMsg, setSuccessMsg] = useState<string>('');
   const [showConfirmDelete, setShowConfirmDelete] = useState<boolean>(false);
 
   // 職員IDの入力＆自動検索
@@ -113,6 +118,28 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         setDepartment(existing.department);
         setAgeGroup(existing.ageGroup);
       }
+    }
+  };
+
+  // 変更・削除用 職員ID検索
+  const handleEditStaffIdChange = (val: string) => {
+    const cleanId = val.replace(/\D/g, '').slice(0, 6);
+    setEditStaffId(cleanId);
+    setErrorMsg('');
+
+    if (cleanId.length === 6) {
+      const found = findUserByStaffId(cleanId);
+      if (found) {
+        setEditTargetUser(found);
+        setName(found.name);
+        setRole(found.role);
+        setDepartment(found.department);
+        setAgeGroup(found.ageGroup);
+      } else {
+        setEditTargetUser(null);
+      }
+    } else {
+      setEditTargetUser(null);
     }
   };
 
@@ -219,10 +246,15 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <p className="setup-sub text-xs text-slate-500 mt-1">
                 ご利用目的に合わせて以下のボタンを選択してください
               </p>
+              {successMsg && (
+                <div className="mt-2 bg-emerald-50 border border-emerald-300 text-emerald-800 p-2.5 rounded-xl text-xs font-extrabold animate-fadeIn">
+                  {successMsg}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2.5 w-full max-w-[340px] mx-auto pt-1">
-              {/* 🟢 1. 初めて使う（新規登録） */}
+              {/* 🟢 1. 新規登録 */}
               <button
                 type="button"
                 onClick={() => {
@@ -236,14 +268,14 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                     <UserPlus className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-extrabold text-sm text-emerald-950 truncate">初めて使う</div>
-                    <div className="text-[11px] text-emerald-700 font-medium truncate">新規ユーザー登録</div>
+                    <div className="font-extrabold text-sm text-emerald-950 truncate">新規登録</div>
+                    <div className="text-[11px] text-emerald-700 font-medium truncate">初めて使う方はこちら（ユーザー設定）</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-emerald-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
-              {/* 🔵 2. 既に登録済み（ログイン） */}
+              {/* 🔵 2. 既に登録済み */}
               <button
                 type="button"
                 onClick={() => {
@@ -258,13 +290,37 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   </div>
                   <div className="min-w-0">
                     <div className="font-extrabold text-sm text-sky-950 truncate">既に登録済み</div>
-                    <div className="text-[11px] text-sky-700 font-medium truncate">職員ID（6桁）でログイン</div>
+                    <div className="text-[11px] text-sky-700 font-medium truncate">職員ID（6桁）を入力してログイン</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-sky-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
-              {/* 🟣 3. 管理者画面へ入る */}
+              {/* ⚙️ 3. 登録の変更・削除 */}
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg('');
+                  setSuccessMsg('');
+                  setStep('edit_id');
+                }}
+                className="w-full h-[68px] p-3 rounded-2xl border-2 border-slate-200 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-xs">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-sm text-slate-900 truncate">登録の変更・削除</div>
+                    <div className="text-[11px] text-slate-600 font-medium truncate">
+                      {initialUser ? `${initialUser.name} (${initialUser.department})` : '登録内容やプロファイルの修正・消去'}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
+              </button>
+
+              {/* 🟣 4. 管理者画面 */}
               <button
                 type="button"
                 onClick={() => {
@@ -278,40 +334,11 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-extrabold text-sm text-rose-950 truncate">管理者画面へ入る</div>
-                    <div className="text-[11px] text-rose-700 font-medium truncate">業務量集計・分析表示</div>
+                    <div className="font-extrabold text-sm text-rose-950 truncate">管理者画面</div>
+                    <div className="text-[11px] text-rose-700 font-medium truncate">パスワードを入力して集計・分析表示</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-rose-500 group-hover:translate-x-1 transition-transform shrink-0" />
-              </button>
-
-              {/* ⚙️ 4. 登録情報の確認・変更・削除 */}
-              <button
-                type="button"
-                onClick={() => {
-                  setErrorMsg('');
-                  if (initialUser) {
-                    setStep('profile');
-                  } else {
-                    setStep('id');
-                  }
-                }}
-                className="w-full h-[68px] p-3 rounded-2xl border-2 border-slate-200 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-xs">
-                    <User className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-sm text-slate-900 truncate">
-                      {initialUser ? `登録変更・削除 (${initialUser.name})` : '登録内容の確認・変更・削除'}
-                    </div>
-                    <div className="text-[11px] text-slate-600 font-medium truncate">
-                      {initialUser ? `ID: ${initialUser.staffId} (${initialUser.department})` : '職員プロファイルの設定を更新'}
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
             </div>
           </div>
@@ -713,29 +740,282 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
           </>
         )}
 
+        {/* ==================================================== */}
+        {/* 変更・削除用：職員ID入力画面 ('edit_id')             */}
+        {/* ==================================================== */}
+        {step === 'edit_id' && (
+          <>
+            <div className="setup-header">
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  className="text-xs text-slate-600 hover:text-slate-800 font-bold flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg border border-slate-300"
+                  onClick={() => setStep('welcome')}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>戻る</span>
+                </button>
+              </div>
+              <h2>変更・削除したい職員IDの入力</h2>
+              <p className="setup-sub">
+                変更・削除したい職員ID番号（6桁）を入力してください
+              </p>
+            </div>
+
+            <div className="setup-form">
+              {errorMsg && <div className="form-error">{errorMsg}</div>}
+              {successMsg && <div className="form-success bg-emerald-50 border border-emerald-300 text-emerald-800 p-3 rounded-xl text-xs font-bold text-center mb-3">{successMsg}</div>}
+
+              <div className="form-group">
+                <label className="form-label">
+                  <CreditCard className="w-4 h-4 text-slate-700" />
+                  <span>職員ID <span className="req-badge">必須 6桁</span></span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input font-mono text-center text-lg tracking-widest"
+                  placeholder="例: 123456"
+                  maxLength={6}
+                  value={editStaffId}
+                  onChange={(e) => handleEditStaffIdChange(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {/* 職員IDが入力され登録ユーザーが見つかった場合 */}
+              {editTargetUser ? (
+                <div className="bg-slate-50 border-2 border-slate-300 text-slate-900 p-4 rounded-2xl shadow-sm space-y-3 animate-fadeIn mt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-slate-500">【該当登録データ】</span>
+                    <span className="text-xs font-mono font-bold bg-sky-100 text-sky-800 px-2 py-0.5 rounded">
+                      ID: {editTargetUser.staffId}
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                    <div>氏名: <strong className="text-base text-slate-900 font-extrabold">{editTargetUser.name}</strong> さん</div>
+                    <div>所属部署: <strong className="text-slate-800">{editTargetUser.department}</strong></div>
+                    <div>職種 / 年齢: <strong className="text-slate-800">{editTargetUser.role} / {editTargetUser.ageGroup}</strong></div>
+                  </div>
+
+                  {/* 3つのボタン（変更 / 削除 / 戻る） */}
+                  <div className="grid grid-cols-3 gap-2 pt-2">
+                    {/* ✏️ 1. 変更 */}
+                    <button
+                      type="button"
+                      className="py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold rounded-xl flex items-center justify-center gap-1 shadow-sm active:scale-98 cursor-pointer"
+                      onClick={() => setStep('edit_profile')}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>変更</span>
+                    </button>
+
+                    {/* 🗑️ 2. 削除 */}
+                    <button
+                      type="button"
+                      className="py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center justify-center gap-1 shadow-sm active:scale-98 cursor-pointer"
+                      onClick={() => setShowConfirmDelete(true)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>削除</span>
+                    </button>
+
+                    {/* ↩️ 3. 戻る */}
+                    <button
+                      type="button"
+                      className="py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl flex items-center justify-center gap-1 active:scale-98 cursor-pointer"
+                      onClick={() => setStep('welcome')}
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>戻る</span>
+                    </button>
+                  </div>
+                </div>
+              ) : editStaffId.length === 6 ? (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs font-bold text-center mt-3">
+                  入力された職員ID ({editStaffId}) の登録情報は見つかりませんでした。
+                </div>
+              ) : null}
+
+              {!editTargetUser && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1"
+                    onClick={() => setStep('welcome')}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>初期画面へ戻る</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ==================================================== */}
+        {/* 登録情報の変更設定画面 ('edit_profile')             */}
+        {/* ==================================================== */}
+        {step === 'edit_profile' && (
+          <>
+            <div className="setup-header">
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2.5 py-1 bg-sky-50 rounded-lg border border-sky-200"
+                  onClick={() => setStep('edit_id')}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>戻る</span>
+                </button>
+              </div>
+              <h2>登録情報の変更</h2>
+              <p className="setup-sub">
+                職員ID: <strong className="font-mono text-sky-700">{editStaffId}</strong> の登録内容を変更・更新してください。
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!name.trim()) {
+                  setErrorMsg('氏名を入力してください。');
+                  return;
+                }
+                const updatedProfile: UserProfile = {
+                  staffId: editStaffId,
+                  name: name.trim(),
+                  role,
+                  department,
+                  ageGroup,
+                  deviceId: initialUser?.deviceId,
+                };
+                saveUserProfile(updatedProfile);
+                setSuccessMsg(`職員ID: ${editStaffId} の登録情報を更新しました。`);
+                setEditTargetUser(updatedProfile);
+                setStep('welcome');
+              }}
+              className="setup-form"
+            >
+              {errorMsg && <div className="form-error">{errorMsg}</div>}
+
+              {/* 氏名 (全幅) */}
+              <div className="form-group">
+                <label className="form-label">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  <span>氏名 <span className="req-badge">必須</span></span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input font-extrabold text-slate-800"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* 職種 & 所属部署 (横2列配置) */}
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label className="form-label">
+                    <Stethoscope className="w-3.5 h-3.5 text-sky-600" />
+                    <span>職種 <span className="req-badge">変更可能</span></span>
+                  </label>
+                  <select
+                    className="form-select font-bold"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as JobRole)}
+                  >
+                    <option value="看護師">看護師</option>
+                    <option value="看護補助者">看護補助者</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>所属部署 <span className="req-badge">変更可能</span></span>
+                  </label>
+                  <select
+                    className="form-select font-bold"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value as Department)}
+                  >
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 年齢階層 */}
+              <div className="form-group">
+                <label className="form-label">
+                  <Award className="w-3.5 h-3.5 text-slate-500" />
+                  <span>年齢階層 <span className="req-badge">変更可能</span></span>
+                </label>
+                <select
+                  className="form-select font-bold"
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
+                >
+                  {AGE_GROUPS.map((age) => (
+                    <option key={age} value={age}>
+                      {age}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  className="btn-secondary py-3 text-xs font-bold"
+                  onClick={() => setStep('edit_id')}
+                >
+                  キャンセル (戻る)
+                </button>
+
+                <button type="submit" className="btn-primary py-3 text-xs font-extrabold shadow-md">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>変更を保存する →</span>
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+
         {/* 誤操作防止の安全確認ダイアログ */}
         {showConfirmDelete && (
           <div className="confirm-delete-overlay">
-            <div className="confirm-delete-card">
-              <AlertTriangle className="w-8 h-8 text-amber-500 mb-2" />
-              <h3>登録情報を削除しますか？</h3>
-              <p>
-                登録されている氏名・部署・入力途中の一時保存データが消去されます。本当によろしいですか？
+            <div className="confirm-delete-card p-6 text-center space-y-3">
+              <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto mb-1 animate-bounce" />
+              <h3 className="text-lg font-extrabold text-slate-900">登録情報を本当に削除してよいですか？</h3>
+              <p className="text-xs text-slate-600 leading-relaxed bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                職員ID: <strong className="font-mono text-rose-700">{editStaffId || staffId}</strong> の登録プロフィールおよび入力途中の一時保存データが消去されます。
               </p>
-              <div className="confirm-buttons-flex">
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-secondary py-2.5 font-bold text-xs"
                   onClick={() => setShowConfirmDelete(false)}
                 >
-                  キャンセル
+                  いいえ (戻る)
                 </button>
                 <button
                   type="button"
-                  className="btn-danger"
-                  onClick={handleConfirmDelete}
+                  className="btn-danger py-2.5 font-extrabold text-xs bg-rose-600 hover:bg-rose-700"
+                  onClick={() => {
+                    handleConfirmDelete();
+                    setSuccessMsg('登録情報を削除しました。');
+                    setEditTargetUser(null);
+                    setStep('welcome');
+                  }}
                 >
-                  削除する
+                  はい (削除する)
                 </button>
               </div>
             </div>
