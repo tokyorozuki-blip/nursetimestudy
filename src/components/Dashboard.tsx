@@ -38,16 +38,20 @@ ChartJS.register(
 interface DashboardProps {
   records: TimeStudyRecord[];
   onGenerateMockData: () => void;
+  onRefreshRecords?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   records,
   onGenerateMockData,
+  onRefreshRecords,
 }) => {
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('ALL');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('ALL');
   const [searchName, setSearchName] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState<string>('');
   const [viewMode, setViewMode] = useState<'standard' | 'annual'>('standard');
 
   // フィルタリング処理
@@ -282,7 +286,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
 
-        <div className="dash-actions">
+        <div className="dash-actions flex items-center gap-2 flex-wrap">
+          {onRefreshRecords && (
+            <button
+              type="button"
+              disabled={isUpdating}
+              className={`py-2.5 px-4 rounded-xl font-black text-xs text-white shadow-md flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
+                isUpdating ? 'bg-sky-400 opacity-80 cursor-wait' : 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700'
+              }`}
+              onClick={async () => {
+                setIsUpdating(true);
+                setSyncStatusMsg('');
+                try {
+                  await onRefreshRecords();
+                  setSyncStatusMsg(`✅ クラウドから最新データ (${records.length}件) を読み込んでダッシュボードを更新しました！`);
+                } catch (err: any) {
+                  setSyncStatusMsg(`⚠️ 同期エラー: ${err?.message || '最新データの読み込みに失敗しました'}`);
+                } finally {
+                  setTimeout(() => setIsUpdating(false), 500);
+                }
+              }}
+            >
+              <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+              <span>{isUpdating ? '最新データを同期中...' : '🔄 クラウドの最新データを同期してダッシュボードを更新'}</span>
+            </button>
+          )}
+
           {/* 年単位比較表示切替ボタン */}
           <button
             className={`btn-dash ${viewMode === 'annual' ? 'btn-active-annual' : 'btn-mock'}`}
@@ -290,11 +319,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           >
             <CalendarRange className="w-4 h-4 text-purple-600" />
             <span>{viewMode === 'annual' ? '通常分析表示に戻る' : '年単位での業務量比較モード'}</span>
-          </button>
-
-          <button className="btn-dash btn-mock" onClick={onGenerateMockData}>
-            <RefreshCw className="w-4 h-4" />
-            <span>複数年モックデータ再生成</span>
           </button>
 
           <button className="btn-dash btn-csv" onClick={() => exportRecordsToCSV(filteredRecords)}>

@@ -22,8 +22,7 @@ import { TaskSelectModal } from './components/TaskSelectModal';
 import { AdminModal } from './components/AdminModal';
 import { AdminPanel } from './components/AdminPanel';
 import { TaskMasterEditModal } from './components/TaskMasterEditModal';
-import * as confettiModule from 'canvas-confetti';
-const confetti = (confettiModule as any).default || confettiModule;
+import confetti from 'canvas-confetti';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'input' | 'admin'>('input');

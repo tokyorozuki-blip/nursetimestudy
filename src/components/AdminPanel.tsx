@@ -218,6 +218,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <Dashboard
           records={records}
           onGenerateMockData={onGenerateMockData}
+          onRefreshRecords={onRefreshRecords}
         />
       )}
 
