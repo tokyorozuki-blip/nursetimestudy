@@ -56,11 +56,16 @@ export function getUserProfile(): UserProfile | null {
   if (!data) return null;
   try {
     const user = JSON.parse(data) as UserProfile;
+    if (!user || typeof user !== 'object' || !user.staffId || !user.name) {
+      return null;
+    }
     if (!user.deviceId) {
       user.deviceId = getOrCreateDeviceId();
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
     }
     return user;
   } catch {
+    localStorage.removeItem(USER_KEY);
     return null;
   }
 }
@@ -68,7 +73,7 @@ export function getUserProfile(): UserProfile | null {
 // ユーザーログアウト処理
 export function logoutUserProfile(): void {
   localStorage.removeItem(USER_KEY);
-  clearDraftSlots();
+  localStorage.removeItem(SLOTS_KEY);
 }
 
 // タイムスロット（一時保存データ）の保存・取得
@@ -76,12 +81,15 @@ export function saveDraftSlots(slots: TimeSlot[]): void {
   localStorage.setItem(SLOTS_KEY, JSON.stringify(slots));
 }
 
+// ドラフト（一時保存スロット）の取得
 export function getDraftSlots(): TimeSlot[] | null {
   const data = localStorage.getItem(SLOTS_KEY);
   if (!data) return null;
   try {
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : null;
   } catch {
+    localStorage.removeItem(SLOTS_KEY);
     return null;
   }
 }
