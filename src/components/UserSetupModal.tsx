@@ -164,7 +164,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         {/* スタート選択メニュー画面 ('welcome')                 */}
         {/* ==================================================== */}
         {step === 'welcome' && (
-          <div className="flex flex-col items-center text-center space-y-4 py-2">
+          <div className="flex flex-col items-center text-center space-y-4 py-2 w-full">
             <div className="setup-header text-center">
               <div className="setup-icon-badge mx-auto bg-sky-100 p-3 rounded-2xl w-14 h-14 flex items-center justify-center mb-2 shadow-sm">
                 <Stethoscope className="w-8 h-8 text-sky-600" />
@@ -175,7 +175,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-3.5 w-full max-w-md mx-auto pt-1">
+            <div className="flex flex-col items-center justify-center gap-3.5 w-full pt-1">
               {/* 🟢 1. 初めて使う（新規登録） */}
               <button
                 type="button"
@@ -183,20 +183,15 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('profile');
                 }}
-                className="w-full px-4 py-3.5 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-sm group"
+                className="w-full max-w-sm h-20 px-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center shadow-xs">
-                    <UserPlus className="w-6 h-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-sm text-emerald-950">初めて使う</div>
-                    <div className="text-[11px] text-emerald-700 mt-0.5 font-medium">職員ID・氏名・部署を登録して開始</div>
-                  </div>
+                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-emerald-950">
+                  <UserPlus className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>初めて使う（新規ユーザー登録）</span>
                 </div>
-                <span className="text-xs bg-emerald-200 text-emerald-800 px-2.5 py-1 rounded-full font-bold shrink-0">
-                  新規登録
-                </span>
+                <div className="text-xs text-emerald-700 mt-1 font-medium">
+                  職員ID・氏名・部署・職種を登録して開始
+                </div>
               </button>
 
               {/* 🔵 2. 既に登録済み（ログイン） */}
@@ -206,20 +201,15 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-full px-4 py-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-sm group"
+                className="w-full max-w-sm h-20 px-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-sky-600 text-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center shadow-xs">
-                    <LogInIcon className="w-6 h-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-sm text-sky-950">既に登録済み</div>
-                    <div className="text-[11px] text-sky-700 mt-0.5 font-medium">6桁の職員IDを入力してログイン</div>
-                  </div>
+                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-sky-950">
+                  <LogInIcon className="w-5 h-5 text-sky-600 shrink-0" />
+                  <span>既に登録済み（職員IDログイン）</span>
                 </div>
-                <span className="text-xs bg-sky-200 text-sky-800 px-2.5 py-1 rounded-full font-bold shrink-0">
-                  ログイン
-                </span>
+                <div className="text-xs text-sky-700 mt-1 font-medium">
+                  登録済みの6桁の職員IDを入力してログイン
+                </div>
               </button>
 
               {/* 🟣 3. 管理者画面へ入る */}
@@ -229,20 +219,15 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-full px-4 py-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-sm group"
+                className="w-full max-w-sm h-20 px-4 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-rose-600 text-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center shadow-xs">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-sm text-rose-950">管理者画面へ入る</div>
-                    <div className="text-[11px] text-rose-700 mt-0.5 font-medium">パスワードを入力して集計・分析表示</div>
-                  </div>
+                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-rose-950">
+                  <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
+                  <span>管理者画面へ入る</span>
                 </div>
-                <span className="text-xs bg-rose-200 text-rose-800 px-2.5 py-1 rounded-full font-bold shrink-0">
-                  管理・分析
-                </span>
+                <div className="text-xs text-rose-700 mt-1 font-medium">
+                  パスワードを入力して業務量集計・分析表示
+                </div>
               </button>
             </div>
           </div>
