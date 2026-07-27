@@ -68,9 +68,9 @@ export function App() {
     const savedUser = getUserProfile();
     if (savedUser) {
       setUser(savedUser);
-    } else {
-      setShowUserSetupModal(true);
     }
+    // サイトアクセス・再アクセス時は必ず一番最初の新規登録・選択画面 (UserSetupModal) を表示！
+    setShowUserSetupModal(true);
 
     // ドラフトスロットの読み込み
     const savedSlots = getDraftSlots();

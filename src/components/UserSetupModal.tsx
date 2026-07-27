@@ -241,28 +241,28 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-card modal-setup">
+      <div className={`modal-card modal-setup ${step === 'welcome' ? 'max-w-4xl md:max-w-5xl w-full p-6 md:p-8' : ''}`}>
         {/* ==================================================== */}
         {/* スタート選択メニュー画面 ('welcome')                 */}
         {/* ==================================================== */}
         {step === 'welcome' && (
-          <div className="flex flex-col items-center text-center space-y-4 py-1 w-full">
-            <div className="setup-header text-center mb-1">
-              <div className="setup-icon-badge mx-auto bg-sky-100 p-3 rounded-2xl w-14 h-14 flex items-center justify-center mb-2 shadow-xs">
-                <Stethoscope className="w-8 h-8 text-sky-600" />
+          <div className="flex flex-col items-center text-center space-y-5 py-2 w-full">
+            <div className="setup-header text-center mb-2">
+              <div className="setup-icon-badge mx-auto bg-sky-100 p-3.5 rounded-2xl w-16 h-16 flex items-center justify-center mb-3 shadow-sm">
+                <Stethoscope className="w-9 h-9 text-sky-600" />
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">看護業務 タイムスタディ調査</h2>
-              <p className="setup-sub text-xs text-slate-500 mt-1">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">看護業務 タイムスタディ調査</h2>
+              <p className="setup-sub text-sm md:text-base text-slate-600 mt-1.5 font-semibold">
                 ご利用目的に合わせて以下のボタンを選択してください
               </p>
               {successMsg && (
-                <div className="mt-2 bg-emerald-50 border border-emerald-300 text-emerald-800 p-2.5 rounded-xl text-xs font-extrabold animate-fadeIn">
+                <div className="mt-3 bg-emerald-50 border-2 border-emerald-300 text-emerald-800 p-3 rounded-xl text-sm font-extrabold animate-fadeIn">
                   {successMsg}
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col space-y-3.5 w-full pt-2">
+            <div className="flex flex-col space-y-4 w-full pt-3">
               {/* 🟢 1. 新規登録 */}
               <button
                 type="button"
@@ -270,15 +270,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-full h-[68px] px-4 py-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
+                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white shrink-0 flex items-center justify-center shadow-xs">
-                    <UserPlus className="w-5 h-5" />
+                <div className="flex items-center gap-4.5 min-w-0">
+                  <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-emerald-600 text-white shrink-0 flex items-center justify-center shadow-sm">
+                    <UserPlus className="w-7 h-7" />
                   </div>
-                  <div className="font-black text-lg text-emerald-950 tracking-tight whitespace-nowrap">新規登録</div>
+                  <div>
+                    <div className="font-black text-xl md:text-2xl text-emerald-950 tracking-tight">新規登録</div>
+                    <div className="text-xs md:text-sm text-emerald-800/80 font-medium mt-0.5">初めての方はこちらから職員ID・属性を新規登録</div>
+                  </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-emerald-500 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-7 h-7 text-emerald-600 group-hover:translate-x-2 transition-transform shrink-0" />
               </button>
 
               {/* 🔵 2. 既に登録済み */}
@@ -288,15 +291,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-full h-[68px] px-4 py-3 rounded-2xl border-2 border-sky-200 bg-sky-50/80 hover:bg-sky-100/80 text-sky-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
+                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-sky-600 text-white shrink-0 flex items-center justify-center shadow-xs">
-                    <LogInIcon className="w-5 h-5" />
+                <div className="flex items-center gap-4.5 min-w-0">
+                  <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-sky-600 text-white shrink-0 flex items-center justify-center shadow-sm">
+                    <LogInIcon className="w-7 h-7" />
                   </div>
-                  <div className="font-black text-lg text-sky-950 tracking-tight whitespace-nowrap">既に登録済み</div>
+                  <div>
+                    <div className="font-black text-xl md:text-2xl text-sky-950 tracking-tight">既に登録済み</div>
+                    <div className="text-xs md:text-sm text-sky-800/80 font-medium mt-0.5">登録済みの方はこちらから職員IDを入力してログイン</div>
+                  </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-sky-500 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-7 h-7 text-sky-600 group-hover:translate-x-2 transition-transform shrink-0" />
               </button>
 
               {/* ⚙️ 3. 登録の変更・削除 */}
@@ -307,15 +313,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setSuccessMsg('');
                   setStep('edit_id');
                 }}
-                className="w-full h-[68px] px-4 py-3 rounded-2xl border-2 border-slate-300 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
+                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-slate-300 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-xs">
-                    <User className="w-5 h-5" />
+                <div className="flex items-center gap-4.5 min-w-0">
+                  <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-sm">
+                    <User className="w-7 h-7" />
                   </div>
-                  <div className="font-black text-lg text-slate-900 tracking-tight whitespace-nowrap">登録の変更・削除</div>
+                  <div>
+                    <div className="font-black text-xl md:text-2xl text-slate-900 tracking-tight">登録の変更・削除</div>
+                    <div className="text-xs md:text-sm text-slate-600 font-medium mt-0.5">登録済みの氏名・部署・属性の変更またはデータ削除</div>
+                  </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-7 h-7 text-slate-500 group-hover:translate-x-2 transition-transform shrink-0" />
               </button>
 
               {/* 🟣 4. 管理者画面 */}
@@ -325,15 +334,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-full h-[68px] px-4 py-3 rounded-2xl border-2 border-rose-200 bg-rose-50/80 hover:bg-rose-100/80 text-rose-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
+                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-rose-300 bg-rose-50/90 hover:bg-rose-100 text-rose-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-rose-600 text-white shrink-0 flex items-center justify-center shadow-xs">
-                    <ShieldCheck className="w-5 h-5" />
+                <div className="flex items-center gap-4.5 min-w-0">
+                  <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-rose-600 text-white shrink-0 flex items-center justify-center shadow-sm">
+                    <ShieldCheck className="w-7 h-7" />
                   </div>
-                  <div className="font-black text-lg text-rose-950 tracking-tight whitespace-nowrap">管理者画面</div>
+                  <div>
+                    <div className="font-black text-xl md:text-2xl text-rose-950 tracking-tight">管理者画面</div>
+                    <div className="text-xs md:text-sm text-rose-800/80 font-medium mt-0.5">全部署の提出進捗確認・マスタ編集・データ管理</div>
+                  </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-rose-500 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-7 h-7 text-rose-600 group-hover:translate-x-2 transition-transform shrink-0" />
               </button>
             </div>
           </div>
