@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TimeSlot, ShiftType } from '../types';
+import { TimeSlot, ShiftType, UserProfile } from '../types';
 import { PRESET_TASKS } from '../constants';
 import {
   Clock,
@@ -15,6 +15,7 @@ import {
   Calendar,
   X,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 
 interface TimelineProps {
@@ -32,10 +33,12 @@ interface TimelineProps {
   onAddLateSlot: () => void;
   onDeleteSlot?: (slotId: string) => void;
   onSaveDraft: () => void;
+  onResetAllSlots?: () => void;
   onSubmit: () => void;
   isDraftSaved: boolean;
   isSubmitted?: boolean;
   onUnlockSubmit?: () => void;
+  user?: UserProfile | null;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -49,10 +52,12 @@ export const Timeline: React.FC<TimelineProps> = ({
   onAddLateSlot,
   onDeleteSlot,
   onSaveDraft,
+  onResetAllSlots,
   onSubmit,
   isDraftSaved,
   isSubmitted = false,
   onUnlockSubmit,
+  user,
 }) => {
   const taskMap = new Map(PRESET_TASKS.map((t) => [t.id, t]));
 
@@ -64,6 +69,11 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   // 所属長連絡確認ダイアログの開閉ステート
   const [showUnlockConfirmModal, setShowUnlockConfirmModal] = useState<boolean>(false);
+
+  // 入力内容リセット確認 ＆ 職員ID認証モーダルステート
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState<boolean>(false);
+  const [resetConfirmStaffId, setResetConfirmStaffId] = useState<string>('');
+  const [resetErrorMsg, setResetErrorMsg] = useState<string>('');
 
   // 時間枠変更の反映
   const handleApplyShiftChange = () => {
@@ -159,6 +169,22 @@ export const Timeline: React.FC<TimelineProps> = ({
               <span>{isDraftSaved ? '一時保存済み' : '一時保存する'}</span>
             </button>
 
+            {onResetAllSlots && (
+              <button
+                type="button"
+                className="btn-toolbar bg-rose-50 text-rose-800 border-2 border-rose-200 hover:bg-rose-100 font-bold transition-all cursor-pointer"
+                onClick={() => {
+                  setResetConfirmStaffId('');
+                  setResetErrorMsg('');
+                  setShowResetConfirmModal(true);
+                }}
+                title="入力中のデータ（下書き含む）をすべて消去・初期化します"
+              >
+                <RotateCcw className="w-4 h-4 text-rose-600" />
+                <span>入力リセット</span>
+              </button>
+            )}
+
             <button
               className="btn-toolbar btn-submit"
               onClick={onSubmit}
@@ -224,6 +250,95 @@ export const Timeline: React.FC<TimelineProps> = ({
                 はい
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⚠️ 入力内容リセット（初期化）確認 ＆ 職員ID認証モーダル */}
+      {showResetConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-card max-w-md p-6 bg-white rounded-2xl shadow-2xl border-2 border-rose-200">
+            <div className="setup-header text-center mb-4">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-2 shadow-xs">
+                <AlertTriangle className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-black text-rose-950">入力内容のリセット確認</h3>
+              <p className="setup-sub text-xs text-rose-800 mt-1.5 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                ※ 現在入力中のタイムスタディデータ（下書きを含む）をすべて消去し初期状態に戻します。
+                <br />
+                この操作は取り消せません！
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const expectedId = user?.staffId || '';
+                if (expectedId && resetConfirmStaffId.trim() !== expectedId) {
+                  setResetErrorMsg('職員IDが一致しません。正確な6桁の職員IDを入力してください。');
+                  return;
+                }
+                setResetErrorMsg('');
+                setShowResetConfirmModal(false);
+                setResetConfirmStaffId('');
+                if (onResetAllSlots) onResetAllSlots();
+              }}
+              className="space-y-4 my-3"
+            >
+              <div className="form-group">
+                <label className="form-label text-xs font-extrabold text-slate-800 block mb-1">
+                  確認のため、ご自身の職員ID（6桁）を入力してください
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    className="form-input text-center text-lg font-mono font-bold tracking-widest border-2 focus:border-rose-500"
+                    placeholder="6桁の職員ID"
+                    value={resetConfirmStaffId}
+                    onChange={(e) => {
+                      setResetConfirmStaffId(e.target.value.replace(/\D/g, ''));
+                      setResetErrorMsg('');
+                    }}
+                    autoFocus
+                    required
+                  />
+                </div>
+                {resetErrorMsg && (
+                  <div className="text-xs text-rose-600 font-bold mt-1.5 text-center bg-rose-50 p-1.5 rounded-lg border border-rose-200">
+                    {resetErrorMsg}
+                  </div>
+                )}
+                {user?.staffId && (
+                  <div className="text-[11px] text-slate-400 text-center mt-1">
+                    ログイン中の職員ID: <span className="font-mono font-bold">{user.staffId}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={!!(user?.staffId && resetConfirmStaffId.trim() !== user.staffId)}
+                  className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-extrabold rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>【実行】入力内容をすべてリセットする</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary py-2.5 text-xs font-semibold"
+                  onClick={() => {
+                    setShowResetConfirmModal(false);
+                    setResetConfirmStaffId('');
+                    setResetErrorMsg('');
+                  }}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -267,6 +267,18 @@ export function App() {
     );
   };
 
+  // 入力内容の完全クリア（リセット）
+  const handleResetAllSlots = () => {
+    const resetSlots = slots.map((s) => ({
+      ...s,
+      selectedTaskIds: [],
+    }));
+    setSlots(resetSlots);
+    clearDraftSlots();
+    setIsDraftSaved(false);
+    alert('入力内容（下書きを含む）をすべてリセット・初期化しました。');
+  };
+
   // 早出スロット（8:30以前）の追加
   const handleAddEarlySlot = () => {
     const firstSlot = slots[0];
@@ -444,10 +456,12 @@ export function App() {
             onAddLateSlot={handleAddLateSlot}
             onDeleteSlot={handleDeleteSlot}
             onSaveDraft={handleSaveDraft}
+            onResetAllSlots={handleResetAllSlots}
             onSubmit={handleSubmitTimeStudy}
             isDraftSaved={isDraftSaved}
             isSubmitted={isSubmitted}
             onUnlockSubmit={handleUnlockSubmit}
+            user={user}
           />
         )}
       </main>
