@@ -35,8 +35,8 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // ステップ状態: 'welcome' (スタート選択メニュー) | 'id' (職員IDログイン) | 'profile' (新規ユーザー登録) | 'admin' (管理者認証)
-  const [step, setStep] = useState<'welcome' | 'id' | 'profile' | 'admin'>('welcome');
+  // ステップ状態: 'welcome' (スタート選択) | 'id' (1/3: 職員ID) | 'profile' (2/3: ユーザー登録) | 'shift' (3/3: 調査日・勤務シフト) | 'admin' (管理者認証)
+  const [step, setStep] = useState<'welcome' | 'id' | 'profile' | 'shift' | 'admin'>('welcome');
 
   const [staffId, setStaffId] = useState<string>(initialUser?.staffId || '');
   const [name, setName] = useState<string>(initialUser?.name || '');
@@ -79,7 +79,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 
   const existingUserFound = staffId.length === 6 ? findUserByStaffId(staffId) : null;
 
-  // ステップ1 (職員ID入力・認証) からの進行またはログイン完了
+  // 【ステップ 1/3】 (職員ID入力) からの進行・ログイン確認
   const handleProceedFromStep1 = (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffId.trim() || !/^\d{6}$/.test(staffId.trim())) {
@@ -110,15 +110,22 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
     }
   };
 
-  // ステップ2 (新規ユーザー登録) の完了 ➔ タイムスタディ画面へ直接遷移！
+  // 【ステップ 2/3】 (ユーザー登録: 氏名・職種・所属部署・年齢) の完了 ➔ ステップ3へ進む
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffId.trim() || !/^\d{6}$/.test(staffId.trim())) {
-      setErrorMsg('職員IDは半角数字6桁で入力してください。');
-      return;
-    }
     if (!name.trim()) {
       setErrorMsg('氏名を入力してください。');
+      return;
+    }
+    setErrorMsg('');
+    setStep('shift');
+  };
+
+  // 【ステップ 3/3】 (調査日 ＆ 勤務シフト選択) の完了 ➔ タイムスタディ画面へ入る！
+  const handleFinalStartStudy = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetDate) {
+      setErrorMsg('調査対象日を選択してください。');
       return;
     }
     if (shiftType === 'custom' && (!customStartTime || !customEndTime)) {
@@ -181,16 +188,16 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 type="button"
                 onClick={() => {
                   setErrorMsg('');
-                  setStep('profile');
+                  setStep('id');
                 }}
-                className="w-[200px] h-20 px-3 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-[340px] max-w-full h-20 px-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
-                <div className="flex items-center justify-center gap-1.5 font-extrabold text-sm text-emerald-950">
-                  <UserPlus className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>初めて使う</span>
+                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-emerald-950 whitespace-nowrap">
+                  <UserPlus className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>初めて使う（新規ユーザー登録）</span>
                 </div>
-                <div className="text-[11px] text-emerald-700 mt-1 font-medium leading-tight">
-                  新規ユーザー登録
+                <div className="text-xs text-emerald-700 mt-1 font-medium whitespace-nowrap">
+                  職員ID・氏名・部署・職種を登録して開始
                 </div>
               </button>
 
@@ -201,14 +208,14 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-[200px] h-20 px-3 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-[340px] max-w-full h-20 px-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
-                <div className="flex items-center justify-center gap-1.5 font-extrabold text-sm text-sky-950">
-                  <LogInIcon className="w-4 h-4 text-sky-600 shrink-0" />
-                  <span>既に登録済み</span>
+                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-sky-950 whitespace-nowrap">
+                  <LogInIcon className="w-5 h-5 text-sky-600 shrink-0" />
+                  <span>既に登録済み（職員IDログイン）</span>
                 </div>
-                <div className="text-[11px] text-sky-700 mt-1 font-medium leading-tight">
-                  職員IDログイン
+                <div className="text-xs text-sky-700 mt-1 font-medium whitespace-nowrap">
+                  登録済みの6桁の職員IDを入力してログイン
                 </div>
               </button>
 
@@ -219,14 +226,14 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-[200px] h-20 px-3 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-[340px] max-w-full h-20 px-4 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
-                <div className="flex items-center justify-center gap-1.5 font-extrabold text-sm text-rose-950">
-                  <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" />
+                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-rose-950 whitespace-nowrap">
+                  <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
                   <span>管理者画面へ入る</span>
                 </div>
-                <div className="text-[11px] text-rose-700 mt-1 font-medium leading-tight">
-                  集計・分析表示
+                <div className="text-xs text-rose-700 mt-1 font-medium whitespace-nowrap">
+                  パスワードを入力して業務量集計・分析表示
                 </div>
               </button>
             </div>
@@ -234,7 +241,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         )}
 
         {/* ==================================================== */}
-        {/* 既に登録済み：職員ID入力・ログイン画面 ('id')       */}
+        {/* 【ステップ 1/3】: 職員ID（6桁）の入力                */}
         {/* ==================================================== */}
         {step === 'id' && (
           <>
@@ -242,16 +249,16 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <button
                   type="button"
-                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2 py-1 bg-sky-50 rounded-lg border border-sky-200"
+                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2.5 py-1 bg-sky-50 rounded-lg border border-sky-200"
                   onClick={() => setStep('welcome')}
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>メニューに戻る</span>
+                  <span>戻る</span>
                 </button>
               </div>
               <h2>職員ID（6桁）の入力</h2>
               <p className="setup-sub">
-                登録済みの6桁の職員IDを入力してください。
+                職員ID６桁を半角数字で入力してください
               </p>
             </div>
 
@@ -287,7 +294,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                     <div>所属: <strong>{existingUserFound.department}</strong>（{existingUserFound.role} / {existingUserFound.ageGroup}）</div>
                   </div>
 
-                  {/* 「はい」 「違います」 ボタン */}
+                  {/* 「はい」「違います」ボタン */}
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <button
                       type="submit"
@@ -313,7 +320,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               ) : staffId.length === 6 ? (
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded-xl text-xs flex items-center gap-2">
                   <User className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>職員ID６桁を半角数字で入力してください</span>
+                  <span>新規の職員IDです。「次へ進む」を押してユーザー登録を行ってください。</span>
                 </div>
               ) : null}
 
@@ -326,11 +333,29 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </div>
               )}
             </form>
+
+            {/* ステップ進捗インジケーター (1/3) */}
+            <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
+              <span>ステップ進捗</span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold">
+                  1/3 職員ID
+                </span>
+                <span>→</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                  2/3 ユーザー登録
+                </span>
+                <span>→</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                  3/3 調査日・勤務
+                </span>
+              </div>
+            </div>
           </>
         )}
 
         {/* ==================================================== */}
-        {/* 初めて使う：新規ユーザー登録画面 ('profile')          */}
+        {/* 【ステップ 2/3】: ユーザー登録 (氏名・職種・所属・年齢) */}
         {/* ==================================================== */}
         {step === 'profile' && (
           <>
@@ -338,54 +363,36 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <button
                   type="button"
-                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2 py-1 bg-sky-50 rounded-lg border border-sky-200"
-                  onClick={() => setStep('welcome')}
+                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2.5 py-1 bg-sky-50 rounded-lg border border-sky-200"
+                  onClick={() => setStep('id')}
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>メニューに戻る</span>
+                  <span>戻る</span>
                 </button>
               </div>
-              <h2>新規ユーザー登録（職員設定）</h2>
+              <h2>ユーザー登録 (プロフィール設定)</h2>
               <p className="setup-sub">
-                職員ID・氏名・職種・所属部署を設定してください。
+                職員ID: <strong className="font-mono text-sky-700">{staffId}</strong> の氏名・職種・所属部署・年齢を設定してください。
               </p>
             </div>
 
             <form onSubmit={handleProfileSubmit} className="setup-form">
               {errorMsg && <div className="form-error">{errorMsg}</div>}
 
-              {/* 職員ID (6桁) ＆ 氏名 (横2列配置) */}
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label className="form-label">
-                    <CreditCard className="w-3.5 h-3.5 text-sky-600" />
-                    <span>職員ID <span className="req-badge">必須 6桁</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input font-mono text-center"
-                    placeholder="例: 123456"
-                    maxLength={6}
-                    value={staffId}
-                    onChange={(e) => handleStaffIdChange(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    <User className="w-3.5 h-3.5 text-slate-500" />
-                    <span>氏名 <span className="req-badge">必須</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="例: 山田 花子"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
+              {/* 氏名 (全幅) */}
+              <div className="form-group">
+                <label className="form-label">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  <span>氏名 <span className="req-badge">必須</span></span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="例: 山田 花子"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
               </div>
 
               {/* 職種 & 所属部署 (横2列配置) */}
@@ -443,46 +450,109 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </div>
               </div>
 
-              {/* 年齢階層 & 調査対象日 (横2列配置) */}
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label className="form-label">
-                    <Award className="w-3.5 h-3.5 text-slate-500" />
-                    <span>年齢階層 <span className="req-badge">5歳刻み</span></span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={ageGroup}
-                    onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
-                  >
-                    {AGE_GROUPS.map((age) => (
-                      <option key={age} value={age}>
-                        {age}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* 年齢階層 */}
+              <div className="form-group">
+                <label className="form-label">
+                  <Award className="w-3.5 h-3.5 text-slate-500" />
+                  <span>年齢階層 <span className="req-badge">5歳刻み</span></span>
+                </label>
+                <select
+                  className="form-select"
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
+                >
+                  {AGE_GROUPS.map((age) => (
+                    <option key={age} value={age}>
+                      {age}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                    <span>入力日（調査日）</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="form-input font-bold text-slate-800"
-                    value={targetDate}
-                    onChange={(e) => setTargetDate(e.target.value)}
-                    required
-                  />
+              <button type="submit" className="btn-primary btn-submit-setup mt-3 py-3">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>次へ進む (調査日・勤務シフト選択へ) →</span>
+              </button>
+
+              {!isInitialSetup && onDeleteProfile && (
+                <div className="delete-profile-wrapper">
+                  <button
+                    type="button"
+                    className="btn-delete-profile"
+                    onClick={() => setShowConfirmDelete(true)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                    <span>登録情報・一時保存データを削除する</span>
+                  </button>
                 </div>
+              )}
+            </form>
+
+            {/* ステップ進捗インジケーター (2/3) */}
+            <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
+              <span>ステップ進捗</span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                  1/3 職員ID
+                </span>
+                <span>→</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold">
+                  2/3 ユーザー登録
+                </span>
+                <span>→</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                  3/3 調査日・勤務
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ==================================================== */}
+        {/* 【ステップ 3/3】: 調査日 ＆ 勤務シフト（時間枠）の選択 */}
+        {/* ==================================================== */}
+        {step === 'shift' && (
+          <>
+            <div className="setup-header">
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2.5 py-1 bg-sky-50 rounded-lg border border-sky-200"
+                  onClick={() => setStep('profile')}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>戻る</span>
+                </button>
+              </div>
+              <h2>調査日 ＆ 勤務シフト（時間枠）の選択</h2>
+              <p className="setup-sub">
+                登録ユーザー: <strong className="text-slate-900">{name} さん</strong>（職員ID: <span className="font-mono text-sky-700">{staffId}</span>）
+              </p>
+            </div>
+
+            <form onSubmit={handleFinalStartStudy} className="setup-form">
+              {errorMsg && <div className="form-error">{errorMsg}</div>}
+
+              {/* 調査対象日の選択 */}
+              <div className="form-group">
+                <label className="form-label">
+                  <Calendar className="w-4 h-4 text-sky-600" />
+                  <span>入力日（調査対象日） <span className="req-badge">日付選択</span></span>
+                </label>
+                <input
+                  type="date"
+                  className="form-input font-bold text-slate-800 text-base"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  required
+                />
               </div>
 
               {/* 勤務シフト選択 (プルダウン) */}
               <div className="form-group">
                 <label className="form-label">
                   <Clock className="w-4 h-4 text-sky-600" />
-                  <span>勤務シフト <span className="req-badge">選択</span></span>
+                  <span>勤務シフト <span className="req-badge">プルダウン選択</span></span>
                 </label>
 
                 <select
@@ -530,22 +600,35 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 
               <button type="submit" className="btn-primary btn-submit-setup mt-3 py-3">
                 <CheckCircle2 className="w-5 h-5" />
-                <span>ユーザー登録を完了してタイムスタディを開始 →</span>
+                <span>
+                  タイムスタディ入力を開始する (
+                  {shiftType === 'day'
+                    ? '日勤 8:30-17:15'
+                    : shiftType === 'night'
+                    ? '夜勤 16:30-翌9:30'
+                    : `カスタム ${customStartTime}-${customEndTime}`}
+                  )
+                </span>
               </button>
-
-              {!isInitialSetup && onDeleteProfile && (
-                <div className="delete-profile-wrapper">
-                  <button
-                    type="button"
-                    className="btn-delete-profile"
-                    onClick={() => setShowConfirmDelete(true)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                    <span>登録情報・一時保存データを削除する</span>
-                  </button>
-                </div>
-              )}
             </form>
+
+            {/* ステップ進捗インジケーター (3/3) */}
+            <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
+              <span>ステップ進捗</span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                  1/3 職員ID
+                </span>
+                <span>→</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                  2/3 ユーザー登録
+                </span>
+                <span>→</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold">
+                  3/3 調査日・勤務
+                </span>
+              </div>
+            </div>
           </>
         )}
 
@@ -558,19 +641,19 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <button
                   type="button"
-                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2 py-1 bg-sky-50 rounded-lg border border-sky-200"
+                  className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1 px-2.5 py-1 bg-sky-50 rounded-lg border border-sky-200"
                   onClick={() => setStep('welcome')}
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>メニューに戻る</span>
+                  <span>戻る</span>
                 </button>
               </div>
-              <div className="flex items-center gap-2 text-rose-900 font-bold text-lg">
+              <div className="flex items-center justify-center gap-2 text-rose-900 font-bold text-lg">
                 <ShieldCheck className="w-6 h-6 text-rose-600" />
                 <span>管理者認証</span>
               </div>
-              <p className="setup-sub">
-                管理者専用の集計・分析・設定画面を開くにはパスワードを入力してください。
+              <p className="setup-sub text-center">
+                管理者専用の集計・分析画面を開くにはパスワードを入力してください。
               </p>
             </div>
 
