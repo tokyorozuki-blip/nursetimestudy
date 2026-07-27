@@ -23,6 +23,9 @@ import {
   Users,
   Search,
   BarChart2,
+  FileText,
+  X,
+  Check,
 } from 'lucide-react';
 
 ChartJS.register(
@@ -54,6 +57,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string>('');
   const [viewMode, setViewMode] = useState<'standard' | 'annual'>('standard');
   const [dedupeMode, setDedupeMode] = useState<'latest' | 'all'>('latest');
+  const [showSummaryModal, setShowSummaryModal] = useState<boolean>(false);
+  const [copiedText, setCopiedText] = useState<boolean>(false);
 
   // 同一人物（職員ID + 調査対象日）の複数提出データを自動デデュープ（入力内容がある有効なデータを優先選択）
   const processedRecords = useMemo(() => {

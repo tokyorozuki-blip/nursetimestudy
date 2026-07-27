@@ -308,3 +308,16 @@ export async function submitRecordToVercel(record: TimeStudyRecord): Promise<boo
     return false;
   }
 }
+
+const DEPT_TARGETS_KEY = 'nurse_timestudy_dept_targets';
+
+/** 各部署の回答対象者数（目標人数）設定の保存と取得 */
+export function getDeptTargets(): Record<string, number> {
+  const saved = safeParse<Record<string, number> | null>(DEPT_TARGETS_KEY, null);
+  if (saved && typeof saved === 'object') return saved;
+  return {};
+}
+
+export function saveDeptTargets(targets: Record<string, number>): void {
+  safeSetItem(DEPT_TARGETS_KEY, JSON.stringify(targets));
+}

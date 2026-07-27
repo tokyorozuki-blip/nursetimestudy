@@ -3,6 +3,7 @@ import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole } from '../types';
 import { DEPARTMENTS } from '../constants';
 import { Dashboard } from './Dashboard';
 import { exportRecordsToCSV } from '../utils/exportCsv';
+import { getDeptTargets, saveDeptTargets } from '../utils/storage';
 import {
   ShieldCheck,
   Building2,
@@ -18,6 +19,10 @@ import {
   Filter,
   Stethoscope,
   HeartHandshake,
+  Settings,
+  Users,
+  X,
+  Check,
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -54,8 +59,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newTaskTargetRole, setNewTaskTargetRole] = useState<JobRole | '共通'>('看護師');
   const [newTaskDesc, setNewTaskDesc] = useState('');
 
-  // マスタ表示・進捗の職種フィルター
+  // マスタ表示・進捗の職種フィルター ＆ 表示モード ＆ 目標設定
   const [progressRoleFilter, setProgressRoleFilter] = useState<'ALL' | JobRole>('ALL');
+  const [progressDisplayMode, setProgressDisplayMode] = useState<'countOnly' | 'withTarget'>('countOnly');
+  const [deptTargets, setDeptTargets] = useState<Record<string, number>>(() => getDeptTargets());
+  const [showTargetModal, setShowTargetModal] = useState<boolean>(false);
+  const [editingTargets, setEditingTargets] = useState<Record<string, number>>({});
   const [masterRoleTab, setMasterRoleTab] = useState<'ALL' | JobRole>('ALL');
 
   // データ削除用日付指定
@@ -66,21 +75,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [dateDeleteStep, setDateDeleteStep] = useState<0 | 1 | 2>(0); // 0:なし, 1:第1段階, 2:第2段階最終決定
   const [allDeleteStep, setAllDeleteStep] = useState<0 | 1 | 2>(0);   // 0:なし, 1:第1段階, 2:第2段階最終決定
 
-  // 部署別進捗
+  // 部署別提出人数集計
   const deptProgressStats = DEPARTMENTS.map((dept) => {
     const deptRecords = records.filter(
       (r) => r.user.department === dept && (progressRoleFilter === 'ALL' || (r.user.role || '看護師') === progressRoleFilter)
     );
-    const targetCount = dept === 'ICU' || dept === 'HCU' ? 25 : 35;
+    const targetCount = deptTargets[dept] || 0;
     const uniqueStaffSet = new Set(deptRecords.map((r) => r.user.staffId || r.user.name));
     const submittedCount = uniqueStaffSet.size;
-    const percent = Math.min(100, Math.round((submittedCount / targetCount) * 100));
 
     return {
       department: dept,
       targetCount,
       submittedCount,
-      percent,
     };
   });
 
@@ -227,9 +234,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {activeSubTab === 'progress' && (
         <div className="admin-section">
           <div className="section-title-row flex-wrap gap-3">
-            <h3 className="section-title">全18部署 提出ステータス一覧 (約600名対象)</h3>
+            <h3 className="section-title">全18部署 提出ステータス一覧</h3>
+
+            {/* 職種表示切替 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-semibold">職種表示切替:</span>
+              <span className="text-xs text-slate-500 font-semibold">職種:</span>
               <div className="inline-flex rounded-md shadow-sm border border-slate-200 bg-white p-0.5">
                 <button
                   className={`px-2.5 py-1 text-xs rounded font-bold transition-all ${
@@ -263,34 +272,126 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
             </div>
+
+            <button
+              type="button"
+              className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-bold transition-colors flex items-center gap-1.5 border border-slate-300 ml-auto"
+              onClick={() => {
+                setEditingTargets({ ...deptTargets });
+                setShowTargetModal(true);
+              }}
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-600" />
+              <span>回答対象者数を設定</span>
+            </button>
+
             <span className="total-submitted-badge ml-auto">
               全提出合計: <strong>{records.filter(r => progressRoleFilter === 'ALL' || (r.user.role || '看護師') === progressRoleFilter).length}</strong> 件
             </span>
           </div>
 
-          <div className="dept-progress-grid">
+          <div className="dept-progress-grid mt-4">
             {deptProgressStats.map((stat) => (
               <div key={stat.department} className="dept-stat-card">
                 <div className="dept-stat-header">
                   <span className="dept-stat-name">{stat.department}</span>
-                  <span className="dept-stat-count">
-                    {stat.submittedCount} / {stat.targetCount} 名
-                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="dept-stat-count text-sky-700 font-bold text-lg">
+                      {stat.submittedCount}
+                    </span>
+                    {stat.targetCount > 0 ? (
+                      <span className="text-xs text-slate-500 font-semibold">
+                        / {stat.targetCount} 名
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-semibold">
+                        名 提出
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="dept-progress-bg">
-                  <div
-                    className="dept-progress-fill"
-                    style={{ width: `${stat.percent}%` }}
-                  ></div>
-                </div>
-                <div className="dept-stat-footer">
-                  <span>進捗率: {stat.percent}%</span>
-                  <span className={stat.percent >= 80 ? 'text-emerald-600 font-bold' : 'text-amber-600'}>
-                    {stat.percent >= 100 ? '提出完了' : stat.percent >= 80 ? '順調' : '要入力促し'}
+
+                <div className="dept-stat-footer pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>実提出人数</span>
+                  <span className={stat.submittedCount > 0 ? 'text-sky-700 font-bold' : 'text-slate-400'}>
+                    {stat.submittedCount > 0 ? `${stat.submittedCount} 名完了` : '未提出'}
                   </span>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 各部署の回答対象者数変更モーダル */}
+      {showTargetModal && (
+        <div className="modal-overlay">
+          <div className="modal-content max-w-xl max-h-[85vh] flex flex-col p-5 bg-white rounded-xl shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-sky-600" />
+                回答対象者数（目標人数）の設定
+              </h3>
+              <button
+                onClick={() => setShowTargetModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 my-3">
+              各部署の回答対象者数（スタッフ数）を任意で設定できます。未入力または「0」にすると実提出人数のみが表示されます。
+            </p>
+
+            <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-3 my-2">
+              {DEPARTMENTS.map((dept) => (
+                <div key={dept} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700">{dept}</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="200"
+                      placeholder="任意"
+                      className="w-16 px-2 py-1 text-xs border border-slate-300 rounded font-mono font-bold text-right"
+                      value={editingTargets[dept] || ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setEditingTargets((prev) => ({
+                          ...prev,
+                          [dept]: isNaN(val) || val < 0 ? 0 : val,
+                        }));
+                      }}
+                    />
+                    <span className="text-xs text-slate-500">名</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                onClick={() => setShowTargetModal(false)}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg flex items-center gap-1 shadow-sm"
+                onClick={() => {
+                  setDeptTargets(editingTargets);
+                  saveDeptTargets(editingTargets);
+                  setShowTargetModal(false);
+                  alert('回答対象者数の設定を更新しました。');
+                }}
+              >
+                <Check className="w-4 h-4" />
+                設定を保存
+              </button>
+            </div>
           </div>
         </div>
       )}
