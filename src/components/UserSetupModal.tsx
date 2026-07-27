@@ -284,6 +284,65 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </div>
                 <ChevronRight className="w-5 h-5 text-rose-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
+
+              {/* ⚙️ 4. 登録ユーザー情報の変更 ＆ データの削除領域 */}
+              {initialUser ? (
+                <div className="w-full mt-2 pt-3 border-t border-slate-200">
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 text-left shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500">保存中の登録ユーザー</span>
+                      <span className="text-xs font-mono font-extrabold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md">
+                        ID: {initialUser.staffId}
+                      </span>
+                    </div>
+                    <div className="text-sm font-extrabold text-slate-900">
+                      {initialUser.name} <span className="text-xs font-medium text-slate-600">（{initialUser.department} / {initialUser.role}）</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {/* ✏️ 登録情報の変更 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMsg('');
+                          setStep('profile');
+                        }}
+                        className="py-2.5 px-3 rounded-xl border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-2xs cursor-pointer"
+                      >
+                        <User className="w-3.5 h-3.5 text-sky-600" />
+                        <span>登録情報を変更</span>
+                      </button>
+
+                      {/* 🗑️ データの削除 */}
+                      {onDeleteProfile && (
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmDelete(true)}
+                          className="py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-2xs cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                          <span>登録データを削除</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* 未ログイン時も登録修正・削除へアクセスできるガイドボタン */
+                <div className="w-full mt-1 pt-2 border-t border-slate-200 flex items-center justify-center gap-3 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      setStep('id');
+                    }}
+                    className="text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1 py-1"
+                  >
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <span>登録内容の確認・変更・削除はこちら</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
