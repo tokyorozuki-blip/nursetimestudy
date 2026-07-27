@@ -221,7 +221,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 w-full max-w-sm mx-auto pt-1">
+            <div className="flex flex-col gap-2.5 w-full max-w-[340px] mx-auto pt-1">
               {/* 🟢 1. 初めて使う（新規登録） */}
               <button
                 type="button"
@@ -229,18 +229,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-full p-3.5 rounded-2xl border-2 border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-xs group cursor-pointer"
+                className="w-full h-[68px] p-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white shrink-0 flex items-center justify-center shadow-xs">
                     <UserPlus className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="font-extrabold text-sm text-emerald-950">初めて使う</div>
-                    <div className="text-xs text-emerald-700 mt-0.5">新規ユーザー登録</div>
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-sm text-emerald-950 truncate">初めて使う</div>
+                    <div className="text-[11px] text-emerald-700 font-medium truncate">新規ユーザー登録</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-emerald-500 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-4 h-4 text-emerald-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
               {/* 🔵 2. 既に登録済み（ログイン） */}
@@ -250,18 +250,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-full p-3.5 rounded-2xl border-2 border-sky-200 bg-sky-50/80 hover:bg-sky-100/80 text-sky-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-xs group cursor-pointer"
+                className="w-full h-[68px] p-3 rounded-2xl border-2 border-sky-200 bg-sky-50/80 hover:bg-sky-100/80 text-sky-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-sky-600 text-white shrink-0 flex items-center justify-center shadow-xs">
                     <LogInIcon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="font-extrabold text-sm text-sky-950">既に登録済み</div>
-                    <div className="text-xs text-sky-700 mt-0.5">職員ID（6桁）でログイン</div>
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-sm text-sky-950 truncate">既に登録済み</div>
+                    <div className="text-[11px] text-sky-700 font-medium truncate">職員ID（6桁）でログイン</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-sky-500 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-4 h-4 text-sky-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
               {/* 🟣 3. 管理者画面へ入る */}
@@ -271,78 +271,48 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-full p-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50/80 hover:bg-rose-100/80 text-rose-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-xs group cursor-pointer"
+                className="w-full h-[68px] p-3 rounded-2xl border-2 border-rose-200 bg-rose-50/80 hover:bg-rose-100/80 text-rose-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-rose-600 text-white shrink-0 flex items-center justify-center shadow-xs">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="font-extrabold text-sm text-rose-950">管理者画面へ入る</div>
-                    <div className="text-xs text-rose-700 mt-0.5">業務量集計・分析表示</div>
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-sm text-rose-950 truncate">管理者画面へ入る</div>
+                    <div className="text-[11px] text-rose-700 font-medium truncate">業務量集計・分析表示</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-rose-500 group-hover:translate-x-1 transition-transform shrink-0" />
+                <ChevronRight className="w-4 h-4 text-rose-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
-              {/* ⚙️ 4. 登録ユーザー情報の変更 ＆ データの削除領域 */}
-              {initialUser ? (
-                <div className="w-full mt-2 pt-3 border-t border-slate-200">
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 text-left shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-500">保存中の登録ユーザー</span>
-                      <span className="text-xs font-mono font-extrabold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md">
-                        ID: {initialUser.staffId}
-                      </span>
+              {/* ⚙️ 4. 登録情報の確認・変更・削除 */}
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg('');
+                  if (initialUser) {
+                    setStep('profile');
+                  } else {
+                    setStep('id');
+                  }
+                }}
+                className="w-full h-[68px] p-3 rounded-2xl border-2 border-slate-200 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-2xs group cursor-pointer shrink-0"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-xs">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-sm text-slate-900 truncate">
+                      {initialUser ? `登録変更・削除 (${initialUser.name})` : '登録内容の確認・変更・削除'}
                     </div>
-                    <div className="text-sm font-extrabold text-slate-900">
-                      {initialUser.name} <span className="text-xs font-medium text-slate-600">（{initialUser.department} / {initialUser.role}）</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      {/* ✏️ 登録情報の変更 */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setErrorMsg('');
-                          setStep('profile');
-                        }}
-                        className="py-2.5 px-3 rounded-xl border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-2xs cursor-pointer"
-                      >
-                        <User className="w-3.5 h-3.5 text-sky-600" />
-                        <span>登録情報を変更</span>
-                      </button>
-
-                      {/* 🗑️ データの削除 */}
-                      {onDeleteProfile && (
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmDelete(true)}
-                          className="py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-2xs cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                          <span>登録データを削除</span>
-                        </button>
-                      )}
+                    <div className="text-[11px] text-slate-600 font-medium truncate">
+                      {initialUser ? `ID: ${initialUser.staffId} (${initialUser.department})` : '職員プロファイルの設定を更新'}
                     </div>
                   </div>
                 </div>
-              ) : (
-                /* 未ログイン時も登録修正・削除へアクセスできるガイドボタン */
-                <div className="w-full mt-1 pt-2 border-t border-slate-200 flex items-center justify-center gap-3 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setErrorMsg('');
-                      setStep('id');
-                    }}
-                    className="text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1 py-1"
-                  >
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <span>登録内容の確認・変更・削除はこちら</span>
-                  </button>
-                </div>
-              )}
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
+              </button>
             </div>
           </div>
         )}
