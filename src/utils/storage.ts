@@ -7,6 +7,18 @@ const RECORDS_KEY = 'nurse_timestudy_all_submitted_records';
 const TASKS_KEY = 'nurse_timestudy_custom_tasks';
 const DEVICE_ID_KEY = 'nurse_timestudy_device_id';
 
+/** 共通の安全な JSON パース処理ヘルパー */
+function safeParse<T>(key: string, fallback: T): T {
+  const data = localStorage.getItem(key);
+  if (!data) return fallback;
+  try {
+    return JSON.parse(data) as T;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
 // 端末（ブラウザ）固有IDの取得または新規割り当て
 export function getOrCreateDeviceId(): string {
   let deviceId = localStorage.getItem(DEVICE_ID_KEY);
@@ -19,13 +31,7 @@ export function getOrCreateDeviceId(): string {
 
 // 全登録ユーザーDBの取得
 export function getAllRegisteredUsers(): UserProfile[] {
-  const data = localStorage.getItem(USERS_DB_KEY);
-  if (!data) return [];
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
+  return safeParse<UserProfile[]>(USERS_DB_KEY, []);
 }
 
 // 職員ID(6桁)によるユーザー検索
@@ -52,22 +58,15 @@ export function saveUserProfile(user: UserProfile): void {
 
 // カレントログインユーザーの取得
 export function getUserProfile(): UserProfile | null {
-  const data = localStorage.getItem(USER_KEY);
-  if (!data) return null;
-  try {
-    const user = JSON.parse(data) as UserProfile;
-    if (!user || typeof user !== 'object' || !user.staffId || !user.name) {
-      return null;
-    }
-    if (!user.deviceId) {
-      user.deviceId = getOrCreateDeviceId();
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-    }
-    return user;
-  } catch {
-    localStorage.removeItem(USER_KEY);
+  const user = safeParse<UserProfile | null>(USER_KEY, null);
+  if (!user || typeof user !== 'object' || !user.staffId || !user.name) {
     return null;
   }
+  if (!user.deviceId) {
+    user.deviceId = getOrCreateDeviceId();
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+  return user;
 }
 
 // ユーザーログアウト処理
@@ -81,17 +80,9 @@ export function saveDraftSlots(slots: TimeSlot[]): void {
   localStorage.setItem(SLOTS_KEY, JSON.stringify(slots));
 }
 
-// ドラフト（一時保存スロット）の取得
 export function getDraftSlots(): TimeSlot[] | null {
-  const data = localStorage.getItem(SLOTS_KEY);
-  if (!data) return null;
-  try {
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : null;
-  } catch {
-    localStorage.removeItem(SLOTS_KEY);
-    return null;
-  }
+  const slots = safeParse<TimeSlot[] | null>(SLOTS_KEY, null);
+  return Array.isArray(slots) ? slots : null;
 }
 
 // 一時保存データのクリア
@@ -105,24 +96,14 @@ export function saveCustomTasks(tasks: TaskItem[]): void {
 }
 
 export function getCustomTasks(): TaskItem[] | null {
-  const data = localStorage.getItem(TASKS_KEY);
-  if (!data) return null;
-  try {
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
+  const tasks = safeParse<TaskItem[] | null>(TASKS_KEY, null);
+  return Array.isArray(tasks) ? tasks : null;
 }
 
 // 全レコード（提出済み）の保存・取得（デモ／ローカル運用用）
 export function getAllSubmittedRecords(): TimeStudyRecord[] {
-  const data = localStorage.getItem(RECORDS_KEY);
-  if (!data) return [];
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
+  const records = safeParse<TimeStudyRecord[]>(RECORDS_KEY, []);
+  return Array.isArray(records) ? records : [];
 }
 
 export function saveSubmittedRecord(record: TimeStudyRecord): void {

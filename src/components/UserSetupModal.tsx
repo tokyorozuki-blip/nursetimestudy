@@ -2,7 +2,26 @@ import React, { useState } from 'react';
 import { UserProfile, Department, AgeGroup, JobRole, ShiftType } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
 import { findUserByStaffId } from '../utils/storage';
-import { User, Building2, Calendar, Award, CheckCircle2, Trash2, AlertTriangle, Stethoscope, Smartphone, CreditCard, LogIn, ArrowLeft, Sun, Moon, HelpCircle, Clock, X, ShieldCheck, UserPlus, LogIn as LogInIcon } from 'lucide-react';
+import {
+  User,
+  Building2,
+  Calendar,
+  Award,
+  CheckCircle2,
+  Trash2,
+  AlertTriangle,
+  Stethoscope,
+  CreditCard,
+  LogIn,
+  ArrowLeft,
+  HelpCircle,
+  Clock,
+  X,
+  ShieldCheck,
+  UserPlus,
+  LogIn as LogInIcon,
+  ChevronRight,
+} from 'lucide-react';
 
 interface UserSetupModalProps {
   initialUser: UserProfile | null;
@@ -21,6 +40,26 @@ interface UserSetupModalProps {
   onDeleteProfile?: () => void;
   isInitialSetup?: boolean;
 }
+
+/** ステップ進捗インジケーター（共通化） */
+const StepProgress: React.FC<{ currentStep: 1 | 2 | 3 }> = ({ currentStep }) => (
+  <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
+    <span>ステップ進捗</span>
+    <div className="flex items-center gap-1.5">
+      <span className={`px-2.5 py-0.5 rounded-full ${currentStep === 1 ? 'bg-sky-600 text-white font-bold' : 'bg-slate-200 text-slate-600'}`}>
+        1/3 職員ID
+      </span>
+      <span>→</span>
+      <span className={`px-2.5 py-0.5 rounded-full ${currentStep === 2 ? 'bg-sky-600 text-white font-bold' : 'bg-slate-200 text-slate-600'}`}>
+        2/3 ユーザー登録
+      </span>
+      <span>→</span>
+      <span className={`px-2.5 py-0.5 rounded-full ${currentStep === 3 ? 'bg-sky-600 text-white font-bold' : 'bg-slate-200 text-slate-600'}`}>
+        3/3 調査日・勤務
+      </span>
+    </div>
+  </div>
+);
 
 export const UserSetupModal: React.FC<UserSetupModalProps> = ({
   initialUser,
@@ -110,7 +149,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
     }
   };
 
-  // 【ステップ 2/3】 (ユーザー登録: 氏名・職種・所属部署・年齢) の完了 ➔ ステップ3へ進む
+  // 【ステップ 2/3】 (ユーザー登録) の完了 ➔ ステップ3へ進む
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -171,18 +210,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         {/* スタート選択メニュー画面 ('welcome')                 */}
         {/* ==================================================== */}
         {step === 'welcome' && (
-          <div className="flex flex-col items-center text-center space-y-4 py-2 w-full">
-            <div className="setup-header text-center">
-              <div className="setup-icon-badge mx-auto bg-sky-100 p-3 rounded-2xl w-14 h-14 flex items-center justify-center mb-2 shadow-sm">
+          <div className="flex flex-col items-center text-center space-y-4 py-1 w-full">
+            <div className="setup-header text-center mb-1">
+              <div className="setup-icon-badge mx-auto bg-sky-100 p-3 rounded-2xl w-14 h-14 flex items-center justify-center mb-2 shadow-xs">
                 <Stethoscope className="w-8 h-8 text-sky-600" />
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900">看護業務 タイムスタディ調査</h2>
-              <p className="setup-sub text-xs text-slate-600 mt-1">
-                ご利用の目的・利用状況に合わせて、以下のボタンを選択してください。
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">看護業務 タイムスタディ調査</h2>
+              <p className="setup-sub text-xs text-slate-500 mt-1">
+                ご利用目的に合わせて以下のボタンを選択してください
               </p>
             </div>
 
-            <div className="flex flex-col items-center justify-center gap-3.5 w-full pt-1">
+            <div className="flex flex-col gap-3 w-full max-w-sm mx-auto pt-1">
               {/* 🟢 1. 初めて使う（新規登録） */}
               <button
                 type="button"
@@ -190,15 +229,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-[340px] max-w-full h-20 px-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-full p-3.5 rounded-2xl border-2 border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-xs group cursor-pointer"
               >
-                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-emerald-950 whitespace-nowrap">
-                  <UserPlus className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <span>初めて使う（新規ユーザー登録）</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white shrink-0 flex items-center justify-center shadow-xs">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-emerald-950">初めて使う</div>
+                    <div className="text-xs text-emerald-700 mt-0.5">新規ユーザー登録</div>
+                  </div>
                 </div>
-                <div className="text-xs text-emerald-700 mt-1 font-medium whitespace-nowrap">
-                  職員ID・氏名・部署・職種を登録して開始
-                </div>
+                <ChevronRight className="w-5 h-5 text-emerald-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
               {/* 🔵 2. 既に登録済み（ログイン） */}
@@ -208,15 +250,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-[340px] max-w-full h-20 px-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-full p-3.5 rounded-2xl border-2 border-sky-200 bg-sky-50/80 hover:bg-sky-100/80 text-sky-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-xs group cursor-pointer"
               >
-                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-sky-950 whitespace-nowrap">
-                  <LogInIcon className="w-5 h-5 text-sky-600 shrink-0" />
-                  <span>既に登録済み（職員IDログイン）</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-sky-600 text-white shrink-0 flex items-center justify-center shadow-xs">
+                    <LogInIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-sky-950">既に登録済み</div>
+                    <div className="text-xs text-sky-700 mt-0.5">職員ID（6桁）でログイン</div>
+                  </div>
                 </div>
-                <div className="text-xs text-sky-700 mt-1 font-medium whitespace-nowrap">
-                  登録済みの6桁の職員IDを入力してログイン
-                </div>
+                <ChevronRight className="w-5 h-5 text-sky-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
               {/* 🟣 3. 管理者画面へ入る */}
@@ -226,15 +271,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-[340px] max-w-full h-20 px-4 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-full p-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50/80 hover:bg-rose-100/80 text-rose-950 flex items-center justify-between gap-3 text-left transition-all duration-150 active:scale-98 shadow-xs group cursor-pointer"
               >
-                <div className="flex items-center justify-center gap-2 font-extrabold text-base text-rose-950 whitespace-nowrap">
-                  <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
-                  <span>管理者画面へ入る</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-600 text-white shrink-0 flex items-center justify-center shadow-xs">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-rose-950">管理者画面へ入る</div>
+                    <div className="text-xs text-rose-700 mt-0.5">業務量集計・分析表示</div>
+                  </div>
                 </div>
-                <div className="text-xs text-rose-700 mt-1 font-medium whitespace-nowrap">
-                  パスワードを入力して業務量集計・分析表示
-                </div>
+                <ChevronRight className="w-5 h-5 text-rose-500 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
             </div>
           </div>
@@ -285,9 +333,9 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               {/* 2回目以降ログイン時：氏名確認・ログイン確認カード */}
               {existingUserFound ? (
                 <div className="bg-sky-50 border-2 border-sky-300 text-sky-900 p-3.5 rounded-2xl shadow-sm space-y-2.5 animate-fadeIn mt-3">
-                  <div className="flex items-center gap-2 font-extrabold text-sky-900 text-sm">
+                  <div className="flex items-center gap-2 font-extrabold text-sky-900 text-sm leading-snug">
                     <HelpCircle className="w-5 h-5 text-sky-600 shrink-0" />
-                    <span>{existingUserFound.name} さんとしてログインして入力開始してよいですか？</span>
+                    <span>すでに同じ職員IDで登録があります。こちらの登録情報でタイムスタディ入力へ移行してよいですか？</span>
                   </div>
                   <div className="bg-white p-2.5 rounded-xl border border-sky-100 text-xs space-y-1">
                     <div>氏名: <strong className="text-sm text-slate-900 font-extrabold">{existingUserFound.name}</strong> さん</div>
@@ -334,23 +382,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               )}
             </form>
 
-            {/* ステップ進捗インジケーター (1/3) */}
-            <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>ステップ進捗</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold">
-                  1/3 職員ID
-                </span>
-                <span>→</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                  2/3 ユーザー登録
-                </span>
-                <span>→</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                  3/3 調査日・勤務
-                </span>
-              </div>
-            </div>
+            <StepProgress currentStep={1} />
           </>
         )}
 
@@ -488,23 +520,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               )}
             </form>
 
-            {/* ステップ進捗インジケーター (2/3) */}
-            <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>ステップ進捗</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                  1/3 職員ID
-                </span>
-                <span>→</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold">
-                  2/3 ユーザー登録
-                </span>
-                <span>→</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                  3/3 調査日・勤務
-                </span>
-              </div>
-            </div>
+            <StepProgress currentStep={2} />
           </>
         )}
 
@@ -612,23 +628,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               </button>
             </form>
 
-            {/* ステップ進捗インジケーター (3/3) */}
-            <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-semibold">
-              <span>ステップ進捗</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                  1/3 職員ID
-                </span>
-                <span>→</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
-                  2/3 ユーザー登録
-                </span>
-                <span>→</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold">
-                  3/3 調査日・勤務
-                </span>
-              </div>
-            </div>
+            <StepProgress currentStep={3} />
           </>
         )}
 

@@ -79,7 +79,7 @@ export function App() {
     setAllRecords(existing);
   }, []);
 
-  // ユーザー設定・シフト・調査日確定保存
+  // ユーザー設定・シフト・調査日確定保存 ➔ タイムスタディ入力画面へ確実に遷移
   const handleSaveUser = (
     updatedUser: UserProfile,
     selectedTargetDate: string,
@@ -100,7 +100,10 @@ export function App() {
     setSlots(newSlots);
     saveDraftSlots(newSlots);
 
+    // モーダルを閉じ、タイムスタディ入力タブへ確実に画面遷移
     setShowUserSetupModal(false);
+    setIsAdminAuthenticated(false);
+    setActiveTab('input');
   };
 
   // ユーザー登録情報・一時保存データの削除
