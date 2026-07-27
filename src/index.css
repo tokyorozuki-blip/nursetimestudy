@@ -275,10 +275,10 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   max-height: 92vh;
   overflow-y: auto;
-  padding: 1.25rem;
+  padding: 1.5rem;
   animation: modalIn 0.25s ease-out;
   position: relative;
 }
