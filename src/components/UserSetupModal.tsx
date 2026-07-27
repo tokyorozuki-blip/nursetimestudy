@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserProfile, Department, AgeGroup, JobRole, ShiftType } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
 import { findUserByStaffId } from '../utils/storage';
-import { User, Building2, Calendar, Award, CheckCircle2, Trash2, AlertTriangle, Stethoscope, Smartphone, IdCard, LogIn, ArrowLeft, Sun, Moon, HelpCircle } from 'lucide-react';
+import { User, Building2, Calendar, Award, CheckCircle2, Trash2, AlertTriangle, Stethoscope, Smartphone, CreditCard, LogIn, ArrowLeft, Sun, Moon, HelpCircle } from 'lucide-react';
 
 interface UserSetupModalProps {
   initialUser: UserProfile | null;
@@ -129,7 +129,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
           <>
             <div className="setup-header">
               <div className="setup-icon-badge">
-                <IdCard className="w-6 h-6 text-sky-600" />
+                <CreditCard className="w-6 h-6 text-sky-600" />
               </div>
               <div className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 mb-1">
                 ステップ 1/3
@@ -153,7 +153,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 
               <div className="form-group">
                 <label className="form-label">
-                  <IdCard className="w-4 h-4 text-sky-600" />
+                  <CreditCard className="w-4 h-4 text-sky-600" />
                   <span>職員ID <span className="req-badge">必須 6桁</span></span>
                 </label>
                 <input
