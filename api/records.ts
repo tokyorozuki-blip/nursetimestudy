@@ -16,26 +16,25 @@ function getKvCredentials() {
   return { url, token };
 }
 
-// 二重エスケープ・配列ネストを再帰解凍するヘルパー
-function recursivelyParseRecords(data: any): any[] {
-  if (!data) return [];
-  if (Array.isArray(data)) {
+function flattenRecords(input: any): any[] {
+  if (!input) return [];
+  if (Array.isArray(input)) {
     let result: any[] = [];
-    for (const item of data) {
-      result = result.concat(recursivelyParseRecords(item));
+    for (const item of input) {
+      result = result.concat(flattenRecords(item));
     }
     return result;
   }
-  if (typeof data === 'string') {
+  if (typeof input === 'string') {
     try {
-      const parsed = JSON.parse(data);
-      return recursivelyParseRecords(parsed);
+      const parsed = JSON.parse(input);
+      return flattenRecords(parsed);
     } catch {
       return [];
     }
   }
-  if (typeof data === 'object' && data.id && data.user) {
-    return [data];
+  if (typeof input === 'object' && input !== null && (input.id || input.user)) {
+    return [input];
   }
   return [];
 }
@@ -64,8 +63,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
         const getJson = await getRes.json();
         if (getJson && getJson.result) {
-          const cleanRecords = recursivelyParseRecords(getJson.result);
-          return res.status(200).json(cleanRecords);
+          const cleanList = flattenRecords(getJson.result);
+          return res.status(200).json(cleanList);
         }
       }
       return res.status(200).json([]);
@@ -83,9 +82,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             headers: { Authorization: `Bearer ${kvToken}` },
           });
           const getJson = await getRes.json();
-          let records = [];
+          let records: any[] = [];
           if (getJson && getJson.result) {
-            records = recursivelyParseRecords(getJson.result);
+            records = flattenRecords(getJson.result);
           }
           const filtered = records.filter((r: any) => r.user?.targetDate !== targetDate);
           await fetch(`${kvUrl}/set/nurse_submitted_records`, {

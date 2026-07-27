@@ -16,25 +16,26 @@ function getKvCredentials() {
   return { url, token };
 }
 
-function recursivelyParseRecords(data: any): any[] {
-  if (!data) return [];
-  if (Array.isArray(data)) {
+// どんなに変なネスト文字列で入っていても、きれいな単一オブジェクト配列へ完全フラット化
+function flattenRecords(input: any): any[] {
+  if (!input) return [];
+  if (Array.isArray(input)) {
     let result: any[] = [];
-    for (const item of data) {
-      result = result.concat(recursivelyParseRecords(item));
+    for (const item of input) {
+      result = result.concat(flattenRecords(item));
     }
     return result;
   }
-  if (typeof data === 'string') {
+  if (typeof input === 'string') {
     try {
-      const parsed = JSON.parse(data);
-      return recursivelyParseRecords(parsed);
+      const parsed = JSON.parse(input);
+      return flattenRecords(parsed);
     } catch {
       return [];
     }
   }
-  if (typeof data === 'object' && data.id && data.user) {
-    return [data];
+  if (typeof input === 'object' && input !== null && (input.id || input.user)) {
+    return [input];
   }
   return [];
 }
@@ -72,17 +73,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const getJson = await getRes.json();
       let records: any[] = [];
       if (getJson && getJson.result) {
-        records = recursivelyParseRecords(getJson.result);
+        records = flattenRecords(getJson.result);
       }
 
-      // 重複チェック（IDまたは同一ユーザー同一日同一時間）
-      const existsIndex = records.findIndex((r: any) => r.id === record.id);
-      if (existsIndex >= 0) {
-        records[existsIndex] = record;
+      // 重複上書き・追加
+      const existsIdx = records.findIndex((r: any) => r.id === record.id);
+      if (existsIdx >= 0) {
+        records[existsIdx] = record;
       } else {
         records.unshift(record);
       }
 
+      // ★ 二重エスケープを完全排除！純粋な JSON 配列としてクリアに保存！
       await fetch(`${kvUrl}/set/nurse_submitted_records`, {
         method: 'POST',
         headers: {
