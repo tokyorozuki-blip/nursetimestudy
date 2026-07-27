@@ -39,6 +39,7 @@ export type ShiftType = 'day' | 'night' | 'custom';
 
 // 業務大カテゴリ
 export type CategoryGroup = '直接看護業務' | '間接看護業務' | 'その他・管理業務';
+export type TaskCategory = CategoryGroup;
 
 // 定型業務項目
 export interface TaskItem {
@@ -48,7 +49,7 @@ export interface TaskItem {
   color: string;
   badgeBg: string;
   description: string;
-  targetRole?: JobRole;
+  targetRole?: JobRole | '共通';
 }
 
 // ユーザー情報
@@ -79,4 +80,5 @@ export interface TimeStudyRecord {
   submittedAt: string;
   shiftType?: ShiftType;
   slots: TimeSlot[];
+  totalFilledSlots?: number;
 }

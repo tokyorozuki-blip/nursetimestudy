@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Department, AgeGroup, JobRole, ShiftType } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
-import { findUserByStaffId, fetchUsersFromVercel, deleteUserProfileByStaffId } from '../utils/storage';
+import { findUserByStaffId, fetchUsersFromVercel, deleteUserProfileByStaffId, saveUserProfile } from '../utils/storage';
 import {
   User,
   Building2,

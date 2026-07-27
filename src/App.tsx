@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserProfile, TimeSlot, TimeStudyRecord, TaskItem } from './types';
+import { UserProfile, TimeSlot, TimeStudyRecord, TaskItem, ShiftType } from './types';
 import { generateDefaultTimeSlots, PRESET_TASKS } from './constants';
 import {
   getUserProfile,

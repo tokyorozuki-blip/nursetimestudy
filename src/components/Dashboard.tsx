@@ -19,6 +19,10 @@ import {
   PieChart,
   RefreshCw,
   CalendarRange,
+  Filter,
+  Users,
+  Search,
+  BarChart2,
 } from 'lucide-react';
 
 ChartJS.register(
