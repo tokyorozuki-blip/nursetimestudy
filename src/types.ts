@@ -34,8 +34,8 @@ export type AgeGroup =
 // 職種の型定義
 export type JobRole = '看護師' | '看護補助者';
 
-// 勤務シフトの型定義 (日勤: 8:30-17:15 / 夜勤: 16:30-翌9:30)
-export type ShiftType = 'day' | 'night';
+// 勤務シフトの型定義 (日勤: 8:30-17:15 / 夜勤: 16:30-翌9:30 / その他)
+export type ShiftType = 'day' | 'night' | 'custom';
 
 // 業務大カテゴリ
 export type CategoryGroup = '直接看護業務' | '間接看護業務' | 'その他・管理業務';

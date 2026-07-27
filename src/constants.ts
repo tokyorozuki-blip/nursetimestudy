@@ -290,8 +290,12 @@ export const PRESET_TASKS: TaskItem[] = [
   },
 ];
 
-// 勤務時間 (日勤 08:30~17:15 / 夜勤 16:30~翌09:30) の15分刻みスロット生成ロジック
-export function generateDefaultTimeSlots(shiftType: ShiftType = 'day'): TimeSlot[] {
+// 勤務時間 (日勤 08:30~17:15 / 夜勤 16:30~翌09:30 / その他カスタム時間) の15分刻みスロット生成ロジック
+export function generateDefaultTimeSlots(
+  shiftType: ShiftType = 'day',
+  customStartTime?: string,
+  customEndTime?: string
+): TimeSlot[] {
   const slots: TimeSlot[] = [];
 
   let startTotalMinutes: number;
@@ -301,6 +305,17 @@ export function generateDefaultTimeSlots(shiftType: ShiftType = 'day'): TimeSlot
     // 夜勤: 16:30 (990分) ～ 翌9:30 (2010分)
     startTotalMinutes = 16 * 60 + 30;
     endTotalMinutes = (24 + 9) * 60 + 30;
+  } else if (shiftType === 'custom' && customStartTime && customEndTime) {
+    // その他 (カスタム時間設定)
+    const [sH, sM] = customStartTime.split(':').map(Number);
+    const [eH, eM] = customEndTime.split(':').map(Number);
+    startTotalMinutes = (isNaN(sH) ? 9 : sH) * 60 + (isNaN(sM) ? 0 : sM);
+    let endM = (isNaN(eH) ? 18 : eH) * 60 + (isNaN(eM) ? 0 : eM);
+
+    if (endM <= startTotalMinutes) {
+      endM += 24 * 60; // 翌日扱い
+    }
+    endTotalMinutes = endM;
   } else {
     // 日勤: 08:30 (510分) ～ 17:15 (1035分)
     startTotalMinutes = 8 * 60 + 30;

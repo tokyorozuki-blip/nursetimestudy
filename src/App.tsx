@@ -29,8 +29,10 @@ export function App() {
   const todayStr = new Date().toISOString().split('T')[0];
   const [targetDate, setTargetDate] = useState<string>(todayStr);
 
-  // 勤務シフト (日勤 8:30-17:15 / 夜勤 16:30-翌9:30)
+  // 勤務シフト (日勤 8:30-17:15 / 夜勤 16:30-翌9:30 / その他)
   const [shiftType, setShiftType] = useState<ShiftType>('day');
+  const [customStartTime, setCustomStartTime] = useState<string>('09:00');
+  const [customEndTime, setCustomEndTime] = useState<string>('18:00');
 
   // ユーザー属性
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -78,14 +80,23 @@ export function App() {
   }, []);
 
   // ユーザー設定・シフト・調査日確定保存
-  const handleSaveUser = (updatedUser: UserProfile, selectedTargetDate: string, selectedShiftType: ShiftType) => {
+  const handleSaveUser = (
+    updatedUser: UserProfile,
+    selectedTargetDate: string,
+    selectedShiftType: ShiftType,
+    customStart?: string,
+    customEnd?: string
+  ) => {
     setUser(updatedUser);
     setTargetDate(selectedTargetDate);
     setShiftType(selectedShiftType);
+    if (customStart) setCustomStartTime(customStart);
+    if (customEnd) setCustomEndTime(customEnd);
+
     saveUserProfile(updatedUser);
 
-    // 選択されたシフト (日勤 / 夜勤) の時間枠スロットを自動生成
-    const newSlots = generateDefaultTimeSlots(selectedShiftType);
+    // 選択されたシフト (日勤 / 夜勤 / その他カスタム) の時間枠スロットを自動生成
+    const newSlots = generateDefaultTimeSlots(selectedShiftType, customStart, customEnd);
     setSlots(newSlots);
     saveDraftSlots(newSlots);
 
@@ -344,6 +355,8 @@ export function App() {
           initialUser={user}
           initialTargetDate={targetDate}
           initialShiftType={shiftType}
+          initialCustomStart={customStartTime}
+          initialCustomEnd={customEndTime}
           onSave={handleSaveUser}
           onDeleteProfile={handleDeleteUserProfile}
           isInitialSetup={!user}
