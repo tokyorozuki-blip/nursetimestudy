@@ -358,6 +358,7 @@ export function App() {
           initialCustomStart={customStartTime}
           initialCustomEnd={customEndTime}
           onSave={handleSaveUser}
+          onOpenAdmin={handleOpenAdminTab}
           onDeleteProfile={handleDeleteUserProfile}
           isInitialSetup={!user}
         />
