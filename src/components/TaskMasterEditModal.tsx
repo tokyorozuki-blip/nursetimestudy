@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskCategory, JobRole } from '../types';
 import { PRESET_TASKS } from '../constants';
-import { Plus, Trash2, RotateCcw, Check, X, Edit2, Palette } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Check, X, Edit2 } from 'lucide-react';
 
 interface TaskMasterEditModalProps {
   currentTasks: TaskItem[];

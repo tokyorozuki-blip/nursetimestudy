@@ -16,12 +16,8 @@ import { Pie, Bar } from 'react-chartjs-2';
 import {
   Download,
   Printer,
-  Filter,
-  Users,
   PieChart,
-  BarChart2,
   RefreshCw,
-  Search,
   CalendarRange,
 } from 'lucide-react';
 

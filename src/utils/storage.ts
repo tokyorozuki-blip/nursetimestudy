@@ -118,6 +118,8 @@ export async function saveUserToVercel(user: UserProfile): Promise<boolean> {
     console.log('Vercel save user status:', err);
     return false;
   }
+}
+
 /** VercelクラウドDBからユーザー登録を完全削除 */
 export async function deleteUserFromVercel(staffId: string): Promise<boolean> {
   try {
