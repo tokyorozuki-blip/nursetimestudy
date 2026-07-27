@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>看護部 タイムスタディ業務時間・行動調査システム</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel for JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Styles -->
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- 定数定義 ---
+    const DEPARTMENTS = [
+      'ICU', 'HCU', '４西', '４東', '６西', '６東', '７西', '７東',
+      '８西', '８東', '９西', '９東', '10西', '10東',
+      'はなみずみ（9階）', 'さくら（10階）', '国体町外来', '伊福町外来'
+    ];
+
+    const AGE_GROUPS = [
+      '20〜24歳', '25〜29歳', '30〜34歳', '35〜39歳',
+      '40〜44歳', '45〜49歳', '50〜54歳', '55〜59歳', '60歳以上'
+    ];
+
+    const INITIAL_PRESET_TASKS = [
+      // 看護師用
+      { id: 'd-1', name: 'バイタル・観察', category: '直接看護業務', color: '#0284c7', badgeBg: '#e0f2fe', description: 'バイタルサイン測定、状態観察、心電図チェック', targetRole: '看護師' },
+      { id: 'd-2', name: '処置・点滴・採血', category: '直接看護業務', color: '#0369a1', badgeBg: '#bae6fd', description: '処置介助、注射・点滴投与、採血、創傷ケア', targetRole: '看護師' },
+      { id: 'd-3', name: '生活援助・ケア', category: '直接看護業務', color: '#0f766e', badgeBg: '#ccfbf1', description: '体位変換、清拭・入浴介助、食事介助、排泄ケア', targetRole: '看護師' },
+      { id: 'd-4', name: '服薬管理・指導', category: '直接看護業務', color: '#15803d', badgeBg: '#dcfce7', description: '配薬、与薬確認、患者・家族への服薬説明・指導', targetRole: '看護師' },
+      { id: 'd-5', name: '医師ラウンド同行', category: '直接看護業務', color: '#4338ca', badgeBg: '#e0e7ff', description: '医師回診同行、処置補助、検査受入れ・付き添い', targetRole: '看護師' },
+      { id: 'i-1', name: 'カルテ記録・入力', category: '間接看護業務', color: '#16a34a', badgeBg: '#dcfce7', description: '電子カルテ入力、経過記録、看護計画立案・評価', targetRole: '看護師' },
+      { id: 'i-2', name: '情報収集・指示確認', category: '間接看護業務', color: '#059669', badgeBg: '#d1fae5', description: 'カルテ情報確認、医師指示受諾・照合、申し送り準備', targetRole: '看護師' },
+      { id: 'i-3', name: '申し送り・会議', category: '間接看護業務', color: '#d97706', badgeBg: '#fef3c7', description: '朝夕申し送り、病棟カンファレンス、多職種連携会議', targetRole: '看護師' },
+      { id: 'i-4', name: '物品・薬品準備', category: '間接看護業務', color: '#ca8a04', badgeBg: '#fef9c3', description: '処置車準備、配薬準備、薬品払い出し、物品補充', targetRole: '看護師' },
+      { id: 'o-1', name: '移動・患者搬送', category: 'その他・管理業務', color: '#9333ea', badgeBg: '#f3e8ff', description: '病棟内移動、他部門・検査室への患者搬送', targetRole: '看護師' },
+      { id: 'o-2', name: '環境整備・消毒', category: 'その他・管理業務', color: '#c026d3', badgeBg: '#fae8ff', description: 'ベッドメイク、病室清掃・換気、機材消毒・管理', targetRole: '看護師' },
+      { id: 'o-3', name: '教育・指導', category: 'その他・管理業務', color: '#e11d48', badgeBg: '#ffe4e6', description: '新人看護師指導、看護学生指導、院内研修受講', targetRole: '看護師' },
+      { id: 'o-4', name: '事務・電話連絡', category: 'その他・管理業務', color: '#475569', badgeBg: '#f1f5f9', description: '他部門調整、電話対応、書類作成・ファイル整理', targetRole: '看護師' },
+      { id: 'o-5', name: '休憩・その他', category: 'その他・管理業務', color: '#64748b', badgeBg: '#e2e8f0', description: '昼休憩、小休憩、その他業務', targetRole: '共通' },
+
+      // 看護補助者用
+      { id: 'a-d1', name: '体位変換・移乗介助', category: '直接看護業務', color: '#0284c7', badgeBg: '#e0f2fe', description: '体位変換、車椅子・ストレッチャー移乗介助', targetRole: '看護補助者' },
+      { id: 'a-d2', name: '清拭・入浴介助', category: '直接看護業務', color: '#0f766e', badgeBg: '#ccfbf1', description: '身体清拭、足浴介助、入浴・シャワー準備および介助', targetRole: '看護補助者' },
+      { id: 'a-d3', name: '排泄介助・オムツ交換', category: '直接看護業務', color: '#0369a1', badgeBg: '#bae6fd', description: 'トイレ誘導、便器着脱介助、オムツ交換・処理', targetRole: '看護補助者' },
+      { id: 'a-d4', name: '食事介助・配膳下膳', category: '直接看護業務', color: '#15803d', badgeBg: '#dcfce7', description: '食事配膳・回収、食事摂取補助、お茶配り・水分補給', targetRole: '看護補助者' },
+      { id: 'a-d5', name: '患者搬送・誘導', category: '直接看護業務', color: '#4338ca', badgeBg: '#e0e7ff', description: '検査室・リハビリ室・手術室への患者搬送および付き添い', targetRole: '看護補助者' },
+      { id: 'a-i1', name: 'ベッドメイク・リネン管理', category: '間接看護業務', color: '#16a34a', badgeBg: '#dcfce7', description: '退院床・定期ベッドメイキング、リネン類の準備・整理回収', targetRole: '看護補助者' },
+      { id: 'a-i2', name: '病室清掃・環境整備', category: '間接看護業務', color: '#059669', badgeBg: '#d1fae5', description: '床頭台・ベッド周りの清掃、病室換気・ゴミ収集処分', targetRole: '看護補助者' },
+      { id: 'a-i3', name: '物品・消耗品補充整理', category: '間接看護業務', color: '#ca8a04', badgeBg: '#fef9c3', description: '倉庫・中央材料室からの消耗品受入・補充・衛生材料整理', targetRole: '看護補助者' },
+      { id: 'a-i4', name: '機材消毒・器具洗浄', category: '間接看護業務', color: '#d97706', badgeBg: '#fef3c7', description: '車椅子・歩行器・メディカル機器の清拭消毒、使用済み器具の洗浄', targetRole: '看護補助者' },
+      { id: 'a-o1', name: 'メッセンジャー・書類搬送', category: 'その他・管理業務', color: '#9333ea', badgeBg: '#f3e8ff', description: '検体搬送、処方箋・カルテ・伝票類の中央部門への運搬', targetRole: '看護補助者' },
+      { id: 'a-o2', name: '看護師補助・ナースコール一次対応', category: 'その他・管理業務', color: '#475569', badgeBg: '#f1f5f9', description: 'ナースコール一時対応・看護師への報告、業務サポート', targetRole: '看護補助者' },
+    ];
+
+    function generateDefaultTimeSlots() {
+      const slots = [];
+      let currentTotalMinutes = 8 * 60 + 30; // 08:30
+      const endTotalMinutes = 17 * 60 + 15;  // 17:15
+
+      while (currentTotalMinutes < endTotalMinutes) {
+        const nextTotalMinutes = currentTotalMinutes + 15;
+        const startH = String(Math.floor(currentTotalMinutes / 60)).padStart(2, '0');
+        const startM = String(currentTotalMinutes % 60).padStart(2, '0');
+        const endH = String(Math.floor(nextTotalMinutes / 60)).padStart(2, '0');
+        const endM = String(nextTotalMinutes % 60).padStart(2, '0');
+
+        slots.push({
+          id: `${startH}:${startM}`,
+          startTime: `${startH}:${startM}`,
+          endTime: `${endH}:${endM}`,
+          isOvertime: false,
+          selectedTaskIds: [],
+        });
+        currentTotalMinutes = nextTotalMinutes;
+      }
+      return slots;
+    }
+
+    // モックデータ生成関数
+    function generateMockRecords(count = 600) {
+      const records = [];
+      const currentYear = new Date().getFullYear();
+      const firstNames = ['佐藤', '鈴木', '高橋', '田中', '伊藤', '渡辺', '山本', '中村', '小林', '加藤'];
+      const lastNames = ['美咲', '葵', '陽菜', '七海', 'さくら', '心愛', '結衣', '凛', '芽衣', '楓'];
+      const years = [currentYear - 2, currentYear - 1, currentYear];
+
+      for (let i = 1; i <= count; i++) {
+        const role = i % 5 === 0 ? '看護補助者' : '看護師';
+        const department = DEPARTMENTS[i % DEPARTMENTS.length];
+        const ageGroup = AGE_GROUPS[i % AGE_GROUPS.length];
+        const name = `${firstNames[i % firstNames.length]} ${lastNames[(i * 3) % lastNames.length]}`;
+        const targetYear = years[i % years.length];
+        const month = String((i % 12) + 1).padStart(2, '0');
+        const day = String((i % 28) + 1).padStart(2, '0');
+        const dateStr = `${targetYear}-${month}-${day}`;
+
+        const roleTasks = INITIAL_PRESET_TASKS.filter(
+          (t) => !t.targetRole || t.targetRole === '共通' || t.targetRole === role
+        );
+
+        const defaultSlots = generateDefaultTimeSlots();
+        const slots = defaultSlots.map((slot, sIndex) => {
+          const selectedTaskIds = [];
+          if (slot.startTime >= '12:00' && slot.startTime < '13:30' && sIndex % 4 === 0) {
+            selectedTaskIds.push('o-5');
+          } else if (role === '看護補助者') {
+            if (sIndex % 3 === 0) selectedTaskIds.push('a-d1');
+            if (sIndex % 4 === 0) selectedTaskIds.push('a-i1');
+            if (sIndex % 5 === 0) selectedTaskIds.push('a-d4');
+          } else {
+            if (sIndex % 2 === 0) selectedTaskIds.push('d-1');
+            if (sIndex % 3 === 0) selectedTaskIds.push('i-1');
+            if (sIndex % 5 === 0) selectedTaskIds.push('d-2');
+          }
+          if (selectedTaskIds.length === 0) {
+            selectedTaskIds.push(roleTasks[sIndex % roleTasks.length].id);
+          }
+          return { ...slot, selectedTaskIds: selectedTaskIds.slice(0, 3) };
+        });
+
+        records.push({
+          id: `REC-${10000 + i}`,
+          user: { name, role, department, ageGroup, targetDate: dateStr },
+          submittedAt: new Date(`${dateStr}T17:15:00`).toISOString(),
+          slots,
+        });
+      }
+      return records;
+    }
+
+    // CSV出力関数
+    function exportRecordsToCSV(records, filename = '看護部タイムスタディ集計データ.csv') {
+      if (!records || records.length === 0) {
+        alert('出力対象のデータが存在しません。');
+        return;
+      }
+      const taskMap = new Map(INITIAL_PRESET_TASKS.map((t) => [t.id, t.name]));
+      const headers = ['提出ID', '調査対象日', '氏名', '職種', '部署', '年齢層', '開始時間', '終了時間', '区分(時間外)', '選択業務1', '選択業務2', '選択業務3', '提出日時'];
+      const rows = [];
+
+      records.forEach((record) => {
+        record.slots.forEach((slot) => {
+          const taskNames = slot.selectedTaskIds.map((id) => taskMap.get(id) || id);
+          rows.push([
+            record.id,
+            record.user.targetDate,
+            `"${record.user.name.replace(/"/g, '""')}"`,
+            `"${record.user.role || '看護師'}"`,
+            `"${record.user.department}"`,
+            `"${record.user.ageGroup}"`,
+            slot.startTime,
+            slot.endTime,
+            slot.isOvertime ? (slot.overtimeType === 'early' ? '早出' : '残業') : '通常',
+            `"${taskNames[0] || ''}"`,
+            `"${taskNames[1] || ''}"`,
+            `"${taskNames[2] || ''}"`,
+            record.submittedAt,
+          ]);
+        });
+      });
+
+      const csvContent = '\uFEFF' + headers.join(',') + '\n' + rows.map((r) => r.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    // --- メインコンポーネント (App) ---
+    function App() {
+      const [activeTab, setActiveTab] = useState('input'); // 'input' | 'admin'
+      const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('nurse_timestudy_user_profile');
+        return saved ? JSON.parse(saved) : null;
+      });
+      const [showUserSetupModal, setShowUserSetupModal] = useState(!user);
+      const [tasks, setTasks] = useState(() => {
+        const saved = localStorage.getItem('nurse_timestudy_custom_tasks');
+        return saved ? JSON.parse(saved) : INITIAL_PRESET_TASKS;
+      });
+      const [slots, setSlots] = useState(() => {
+        const saved = localStorage.getItem('nurse_timestudy_draft_slots');
+        return saved ? JSON.parse(saved) : generateDefaultTimeSlots();
+      });
+      const [activeSlot, setActiveSlot] = useState(null);
+      const [allRecords, setAllRecords] = useState(() => {
+        const saved = localStorage.getItem('nurse_timestudy_all_submitted_records');
+        return saved ? JSON.parse(saved) : [];
+      });
+      const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+      const [showAdminAuthModal, setShowAdminAuthModal] = useState(false);
+
+      const handleSaveUser = (updatedUser) => {
+        setUser(updatedUser);
+        localStorage.setItem('nurse_timestudy_user_profile', JSON.stringify(updatedUser));
+        setShowUserSetupModal(false);
+      };
+
+      const handleDeleteUserProfile = () => {
+        localStorage.removeItem('nurse_timestudy_user_profile');
+        localStorage.removeItem('nurse_timestudy_draft_slots');
+        setUser(null);
+        setSlots(generateDefaultTimeSlots());
+        setShowUserSetupModal(true);
+        alert('登録情報および一時保存データを削除しました。');
+      };
+
+      const handleSaveSlotTasks = (slotId, taskIds) => {
+        const updated = slots.map((s) => (s.id === slotId ? { ...s, selectedTaskIds: taskIds } : s));
+        setSlots(updated);
+        localStorage.setItem('nurse_timestudy_draft_slots', JSON.stringify(updated));
+        setActiveSlot(null);
+      };
+
+      const handleSubmitTimeStudy = () => {
+        if (!user) {
+          setShowUserSetupModal(true);
+          return;
+        }
+        const unassigned = slots.filter((s) => s.selectedTaskIds.length === 0).length;
+        if (unassigned > 0) {
+          if (!window.confirm(`未入力のコマが ${unassigned} 件あります。このまま送信しますか？`)) return;
+        }
+        const newRecord = {
+          id: `SUB-${Date.now().toString().slice(-6)}`,
+          user,
+          submittedAt: new Date().toLocaleString('ja-JP'),
+          slots,
+        };
+        const updatedRecords = [newRecord, ...allRecords];
+        setAllRecords(updatedRecords);
+        localStorage.setItem('nurse_timestudy_all_submitted_records', JSON.stringify(updatedRecords));
+        localStorage.removeItem('nurse_timestudy_draft_slots');
+        setSlots(generateDefaultTimeSlots());
+
+        if (window.confetti) {
+          window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+        alert('タイムスタディの提出が完了しました！ご協力ありがとうございました。');
+      };
+
+      const handleAddTask = (newTask) => {
+        const updated = [...tasks, newTask];
+        setTasks(updated);
+        localStorage.setItem('nurse_timestudy_custom_tasks', JSON.stringify(updated));
+      };
+
+      const handleDeleteTask = (taskId) => {
+        const updated = tasks.filter((t) => t.id !== taskId);
+        setTasks(updated);
+        localStorage.setItem('nurse_timestudy_custom_tasks', JSON.stringify(updated));
+      };
+
+      const handleGenerateMockData = () => {
+        const mock = generateMockRecords(600);
+        setAllRecords(mock);
+        localStorage.setItem('nurse_timestudy_all_submitted_records', JSON.stringify(mock));
+        alert('看護師・看護補助者を含む600人規模の複数年サンプルデータを生成しました！');
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* 共通ヘッダー */}
+          <header className="bg-slate-900 text-white shadow-md">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-xl shadow">
+                  ⏱️
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold leading-tight">看護部 タイムスタディ</h1>
+                  <p className="text-xs text-slate-400">業務時間・行動調査システム</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {user ? (
+                  <button
+                    onClick={() => setShowUserSetupModal(true)}
+                    className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition"
+                  >
+                    <span className="text-sm font-semibold">{user.name}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${user.role === '看護補助者' ? 'bg-emerald-500 text-white' : 'bg-sky-500 text-white'}`}>
+                      {user.role}
+                    </span>
+                    <span className="text-xs text-slate-400">({user.department})</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowUserSetupModal(true)}
+                    className="bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold"
+                  >
+                    ユーザー属性設定
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    if (isAdminAuthenticated) setActiveTab('admin');
+                    else setShowAdminAuthModal(true);
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1 transition ${
+                    isAdminAuthenticated ? 'bg-purple-600 text-white' : 'bg-amber-600 text-white'
+                  }`}
+                >
+                  <span>{isAdminAuthenticated ? '🔓 管理コンソール' : '🔒 管理者ログイン'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ナビタブ */}
+            <div className="max-w-7xl mx-auto px-4 flex space-x-2 text-sm border-t border-slate-800 pt-1">
+              <button
+                onClick={() => setActiveTab('input')}
+                className={`px-4 py-2 font-bold border-b-2 transition ${
+                  activeTab === 'input' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                タイムスタディ入力 ({user ? user.role : '看護部'})
+              </button>
+              {isAdminAuthenticated && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`px-4 py-2 font-bold border-b-2 transition ${
+                    activeTab === 'admin' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  管理画面（集計・分析・設定）
+                </button>
+              )}
+            </div>
+          </header>
+
+          {/* メインビュー */}
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+            {activeTab === 'input' && (
+              <TimelineView
+                user={user}
+                slots={slots}
+                setSlots={setSlots}
+                onSlotClick={(slot) => setActiveSlot(slot)}
+                onSubmit={handleSubmitTimeStudy}
+              />
+            )}
+
+            {activeTab === 'admin' && isAdminAuthenticated && (
+              <AdminConsoleView
+                records={allRecords}
+                setAllRecords={setAllRecords}
+                tasks={tasks}
+                onAddTask={handleAddTask}
+                onDeleteTask={handleDeleteTask}
+                onGenerateMock={handleGenerateMockData}
+                onLogout={() => {
+                  setIsAdminAuthenticated(false);
+                  setActiveTab('input');
+                }}
+              />
+            )}
+          </main>
+
+          {/* モーダル群 */}
+          {showUserSetupModal && (
+            <UserSetupModal
+              user={user}
+              onSave={handleSaveUser}
+              onDelete={handleDeleteUserProfile}
+              onClose={() => setShowUserSetupModal(false)}
+            />
+          )}
+
+          {activeSlot && (
+            <TaskSelectModal
+              slot={activeSlot}
+              tasks={tasks}
+              userRole={user?.role || '看護師'}
+              onSave={handleSaveSlotTasks}
+              onClose={() => setActiveSlot(null)}
+            />
+          )}
+
+          {showAdminAuthModal && (
+            <AdminAuthModal
+              onSuccess={() => {
+                setIsAdminAuthenticated(true);
+                setShowAdminAuthModal(false);
+                setActiveTab('admin');
+              }}
+              onClose={() => setShowAdminAuthModal(false)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // --- タイムライン表示ビュー ---
+    function TimelineView({ user, slots, setSlots, onSlotClick, onSubmit }) {
+      const assignedCount = slots.filter((s) => s.selectedTaskIds.length > 0).length;
+      const progressPercent = Math.round((assignedCount / slots.length) * 100);
+
+      const handleAddEarlySlot = () => {
+        const first = slots[0];
+        const [h, m] = first.startTime.split(':').map(Number);
+        let totalM = h * 60 + m - 15;
+        if (totalM < 0) totalM += 1440;
+        const startH = String(Math.floor(totalM / 60)).padStart(2, '0');
+        const startM = String(totalM % 60).padStart(2, '0');
+        const newSlot = {
+          id: `early-${startH}:${startM}`,
+          startTime: `${startH}:${startM}`,
+          endTime: first.startTime,
+          isOvertime: true,
+          overtimeType: 'early',
+          selectedTaskIds: [],
+        };
+        const updated = [newSlot, ...slots];
+        setSlots(updated);
+        localStorage.setItem('nurse_timestudy_draft_slots', JSON.stringify(updated));
+      };
+
+      const handleAddLateSlot = () => {
+        const last = slots[slots.length - 1];
+        const [h, m] = last.endTime.split(':').map(Number);
+        const totalM = h * 60 + m + 15;
+        const endH = String(Math.floor(totalM / 60)).padStart(2, '0');
+        const endM = String(totalM % 60).padStart(2, '0');
+        const newSlot = {
+          id: `late-${last.endTime}`,
+          startTime: last.endTime,
+          endTime: `${endH}:${endM}`,
+          isOvertime: true,
+          overtimeType: 'late',
+          selectedTaskIds: [],
+        };
+        const updated = [...slots, newSlot];
+        setSlots(updated);
+        localStorage.setItem('nurse_timestudy_draft_slots', JSON.stringify(updated));
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* ステータスバー */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded bg-sky-100 text-sky-800">
+                    対象日: {user?.targetDate || '本日'}
+                  </span>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded ${user?.role === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+                    職種: {user?.role || '未設定'}
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold mt-2">15分単位 行動・業務入力</h2>
+                <p className="text-xs text-slate-500">コマを選択し、該当時間に行った業務（最大3つ）を選択してください。</p>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <div className="text-xs text-slate-500 font-semibold">入力進捗</div>
+                  <div className="text-lg font-bold text-sky-600">{assignedCount} / {slots.length} コマ ({progressPercent}%)</div>
+                </div>
+                <button
+                  onClick={onSubmit}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition transform active:scale-95"
+                >
+                  調査完了・送信
+                </button>
+              </div>
+            </div>
+
+            {/* 進捗プログレスバー */}
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-4">
+              <div className="bg-sky-500 h-full transition-all duration-300" style={{ width: `${progressPercent}%` }}></div>
+            </div>
+          </div>
+
+          {/* 早出追加ボタン */}
+          <div className="text-center">
+            <button
+              onClick={handleAddEarlySlot}
+              className="text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-4 py-2 rounded-full transition"
+            >
+              ＋ 早出時間枠（8:30以前）を追加
+            </button>
+          </div>
+
+          {/* タイムライングリッド */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {slots.map((slot) => {
+              const isFilled = slot.selectedTaskIds.length > 0;
+              return (
+                <div
+                  key={slot.id}
+                  onClick={() => onSlotClick(slot)}
+                  className={`p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ${
+                    slot.isOvertime
+                      ? 'bg-purple-50/60 border-purple-200 hover:border-purple-400'
+                      : isFilled
+                      ? 'bg-white border-sky-300 shadow-sm hover:border-sky-500'
+                      : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`text-xs font-bold px-2 py-1 rounded ${slot.isOvertime ? 'bg-purple-200 text-purple-800' : 'bg-slate-200 text-slate-700'}`}>
+                      {slot.startTime} - {slot.endTime}
+                    </div>
+                    {slot.isOvertime && <span className="text-[10px] bg-purple-600 text-white font-bold px-1.5 py-0.5 rounded">時間外</span>}
+                  </div>
+
+                  <div className="flex items-center space-x-1.5">
+                    {isFilled ? (
+                      <span className="text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-md">
+                        {slot.selectedTaskIds.length}件 選択済み
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-medium">未入力 ＋</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 残業追加ボタン */}
+          <div className="text-center pt-2">
+            <button
+              onClick={handleAddLateSlot}
+              className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-4 py-2 rounded-full transition"
+            >
+              ＋ 残業時間枠（17:15以降）を追加
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // --- 業務項目選択モーダル ---
+    function TaskSelectModal({ slot, tasks, userRole, onSave, onClose }) {
+      const [selectedIds, setSelectedIds] = useState([...slot.selectedTaskIds]);
+
+      const availableTasks = tasks.filter(
+        (t) => !t.targetRole || t.targetRole === '共通' || t.targetRole === userRole
+      );
+
+      const directTasks = availableTasks.filter((t) => t.category === '直接看護業務');
+      const indirectTasks = availableTasks.filter((t) => t.category === '間接看護業務');
+      const otherTasks = availableTasks.filter((t) => t.category === 'その他・管理業務');
+
+      const toggleTask = (taskId) => {
+        if (selectedIds.includes(taskId)) {
+          setSelectedIds(selectedIds.filter((id) => id !== taskId));
+        } else {
+          if (selectedIds.length >= 3) {
+            alert('15分のコマで選択できる業務は最大3つまでです。');
+            return;
+          }
+          setSelectedIds([...selectedIds, taskId]);
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* モーダルヘッダー */}
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <span className="text-xs text-sky-400 font-bold">対象時間枠</span>
+                <h3 className="text-lg font-bold">{slot.startTime} 〜 {slot.endTime}</h3>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button onClick={onClose} className="px-3 py-1.5 text-xs text-slate-300 hover:text-white">キャンセル</button>
+                <button
+                  onClick={() => onSave(slot.id, selectedIds)}
+                  className="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-lg"
+                >
+                  決定 ({selectedIds.length}/3件)
+                </button>
+              </div>
+            </div>
+
+            {/* モーダルコンテンツ */}
+            <div className="p-5 overflow-y-auto space-y-6 flex-1">
+              <p className="text-xs text-slate-500 font-semibold bg-sky-50 p-2.5 rounded-lg border border-sky-100">
+                💡 【{userRole}専用マスター】該当時間に行った業務を<strong>最大3つ</strong>までタップして選択してください。
+              </p>
+
+              {/* 直接看護業務 */}
+              <div>
+                <h4 className="text-sm font-bold text-sky-700 border-b border-sky-200 pb-1 mb-3 flex items-center">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-500 mr-2"></span>
+                  直接看護業務 (患者へのケア・処置等)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {directTasks.map((t) => {
+                    const isSelected = selectedIds.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => toggleTask(t.id)}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          isSelected ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-400' : 'border-slate-200 bg-white hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-sm text-slate-800">{t.name}</span>
+                        <span className="text-[11px] text-slate-500 mt-1">{t.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 間接看護業務 */}
+              <div>
+                <h4 className="text-sm font-bold text-emerald-700 border-b border-emerald-200 pb-1 mb-3 flex items-center">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2"></span>
+                  間接看護業務 (カルテ・準備・清掃等)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {indirectTasks.map((t) => {
+                    const isSelected = selectedIds.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => toggleTask(t.id)}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          isSelected ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : 'border-slate-200 bg-white hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-sm text-slate-800">{t.name}</span>
+                        <span className="text-[11px] text-slate-500 mt-1">{t.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* その他・管理業務 */}
+              <div>
+                <h4 className="text-sm font-bold text-purple-700 border-b border-purple-200 pb-1 mb-3 flex items-center">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2"></span>
+                  その他・管理業務 (搬送・事務・休憩等)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {otherTasks.map((t) => {
+                    const isSelected = selectedIds.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => toggleTask(t.id)}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          isSelected ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-400' : 'border-slate-200 bg-white hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-sm text-slate-800">{t.name}</span>
+                        <span className="text-[11px] text-slate-500 mt-1">{t.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- ユーザー設定モーダル ---
+    function UserSetupModal({ user, onSave, onDelete, onClose }) {
+      const [name, setName] = useState(user?.name || '');
+      const [role, setRole] = useState(user?.role || '看護師');
+      const [department, setDepartment] = useState(user?.department || 'ICU');
+      const [ageGroup, setAgeGroup] = useState(user?.ageGroup || '25〜29歳');
+      const [targetDate, setTargetDate] = useState(user?.targetDate || new Date().toISOString().split('T')[0]);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!name.trim()) return alert('氏名を入力してください');
+        onSave({ name: name.trim(), role, department, ageGroup, targetDate });
+      };
+
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900 border-b pb-2">看護部 属性情報設定</h3>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 職種選択 */}
+              <div>
+                <label className="text-xs font-bold text-slate-600 block mb-1">職種選択 (必須)</label>
+                
+                {/* 確実なフォールバック用ドロップダウン */}
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full p-3 border-2 border-sky-200 rounded-xl bg-sky-50/50 font-bold text-sm text-slate-800 mb-2"
+                >
+                  <option value="看護師">🩺 看護師 (病棟・外来・ICU等)</option>
+                  <option value="看護補助者">🤝 看護補助者 (ケア補助・環境整備等)</option>
+                </select>
+
+                {/* 直感的なラジオボタンカード */}
+                <div className="grid grid-cols-2 gap-3 mt-1.5">
+                  <label
+                    className={`p-4 rounded-2xl cursor-pointer flex flex-col justify-between transition-all duration-200 ${
+                      role === '看護師'
+                        ? 'border-4 border-sky-600 bg-sky-100/90 text-sky-950 shadow-xl ring-4 ring-sky-300/50 scale-[1.03] z-10'
+                        : 'border-2 border-slate-200 bg-slate-50/80 text-slate-500 hover:bg-white hover:border-slate-300 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="appJobRoleRadio"
+                          value="看護師"
+                          checked={role === '看護師'}
+                          onChange={() => setRole('看護師')}
+                          className="w-5 h-5 text-sky-600 accent-sky-600 cursor-pointer"
+                        />
+                        <span className="font-extrabold text-base">🩺 看護師</span>
+                      </div>
+                      {role === '看護師' && (
+                        <span className="text-[10px] font-extrabold bg-sky-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                          ✓ 選択中
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-2 text-slate-600 font-medium">
+                      処置・バイタル・点滴・カルテ入力など
+                    </p>
+                  </label>
+
+                  <label
+                    className={`p-4 rounded-2xl cursor-pointer flex flex-col justify-between transition-all duration-200 ${
+                      role === '看護補助者'
+                        ? 'border-4 border-emerald-600 bg-emerald-100/90 text-emerald-950 shadow-xl ring-4 ring-emerald-300/50 scale-[1.03] z-10'
+                        : 'border-2 border-slate-200 bg-slate-50/80 text-slate-500 hover:bg-white hover:border-slate-300 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="appJobRoleRadio"
+                          value="看護補助者"
+                          checked={role === '看護補助者'}
+                          onChange={() => setRole('看護補助者')}
+                          className="w-5 h-5 text-emerald-600 accent-emerald-600 cursor-pointer"
+                        />
+                        <span className="font-extrabold text-base">🤝 看護補助者</span>
+                      </div>
+                      {role === '看護補助者' && (
+                        <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                          ✓ 選択中
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-2 text-slate-600 font-medium">
+                      体位変換・清拭介助・環境整備・補充など
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-600">氏名</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="例: 山田 花子"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full mt-1 p-2.5 border rounded-lg text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-600">所属部署</label>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  className="w-full mt-1 p-2.5 border rounded-lg text-sm"
+                >
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-600">年齢階層</label>
+                <select
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value)}
+                  className="w-full mt-1 p-2.5 border rounded-lg text-sm"
+                >
+                  {AGE_GROUPS.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-600">調査対象日</label>
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  className="w-full mt-1 p-2.5 border rounded-lg text-sm"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                {user && (
+                  <button type="button" onClick={onDelete} className="text-xs text-red-600 hover:underline">
+                    登録情報削除
+                  </button>
+                )}
+                <button type="submit" className="ml-auto bg-sky-600 hover:bg-sky-500 text-white font-bold px-5 py-2.5 rounded-lg text-sm">
+                  設定を保存して入力開始
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // --- 管理者認証モーダル ---
+    function AdminAuthModal({ onSuccess, onClose }) {
+      const [pwd, setPwd] = useState('');
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (pwd === 'okasaikango') {
+          onSuccess();
+        } else {
+          alert('パスワードが正しくありません (デフォルト: okasaikango)');
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-purple-900 border-b pb-2">🔒 管理者認証</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs text-slate-600 font-semibold">管理者パスワード (初期: okasaikango)</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="okasaikango"
+                  value={pwd}
+                  onChange={(e) => setPwd(e.target.value)}
+                  className="w-full mt-1 p-2.5 border rounded-lg text-sm"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button type="button" onClick={onClose} className="px-3 py-2 text-xs text-slate-500">キャンセル</button>
+                <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-lg text-xs">
+                  ログイン
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // --- 管理コンソールビュー ---
+    function AdminConsoleView({ records, setAllRecords, tasks, onAddTask, onDeleteTask, onGenerateMock, onLogout }) {
+      const [subTab, setSubTab] = useState('dashboard'); // 'dashboard' | 'progress' | 'master' | 'data'
+      const [roleFilter, setRoleFilter] = useState('ALL');
+      const [deptFilter, setDeptFilter] = useState('ALL');
+
+      // フィルタリングデータ
+      const filteredRecords = useMemo(() => {
+        return records.filter((r) => {
+          const matchRole = roleFilter === 'ALL' || (r.user.role || '看護師') === roleFilter;
+          const matchDept = deptFilter === 'ALL' || r.user.department === deptFilter;
+          return matchRole && matchDept;
+        });
+      }, [records, roleFilter, deptFilter]);
+
+      return (
+        <div className="space-y-6">
+          {/* 管理ヘッダー */}
+          <div className="glass-card rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 border border-purple-200">
+            <div>
+              <span className="text-xs font-bold bg-purple-100 text-purple-800 px-2.5 py-1 rounded">看護部 管理者専用コンソール</span>
+              <h2 className="text-xl font-bold mt-1 text-slate-900">看護業務量・進捗管理ダッシュボード</h2>
+            </div>
+            <button onClick={onLogout} className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs">
+              ログアウト
+            </button>
+          </div>
+
+          {/* サブタブ */}
+          <div className="flex space-x-2 border-b border-slate-200">
+            {['dashboard', 'progress', 'master', 'data'].map((tabKey) => (
+              <button
+                key={tabKey}
+                onClick={() => setSubTab(tabKey)}
+                className={`px-4 py-2 text-sm font-bold border-b-2 transition ${
+                  subTab === tabKey ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tabKey === 'dashboard' && '📊 集計・分析ダッシュボード'}
+                {tabKey === 'progress' && '🏥 18部署別 提出進捗'}
+                {tabKey === 'master' && '⚙️ 定型業務マスタ編集'}
+                {tabKey === 'data' && '🗑️ データ管理・モック生成'}
+              </button>
+            ))}
+          </div>
+
+          {/* 1. 集計ダッシュボード */}
+          {subTab === 'dashboard' && (
+            <div className="space-y-6">
+              {/* フィルターバー */}
+              <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-wrap items-center gap-4">
+                <div>
+                  <label className="text-xs text-slate-500 font-bold mr-2">職種絞り込み:</label>
+                  <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="p-2 border rounded-lg text-xs font-bold">
+                    <option value="ALL">全職種 (全体)</option>
+                    <option value="看護師">看護師</option>
+                    <option value="看護補助者">看護補助者</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 font-bold mr-2">部署絞り込み:</label>
+                  <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="p-2 border rounded-lg text-xs font-bold">
+                    <option value="ALL">全18部署 (全体)</option>
+                    {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="ml-auto flex items-center space-x-2">
+                  <span className="text-xs text-slate-500 font-bold">対象: {filteredRecords.length} 件</span>
+                  <button onClick={() => exportRecordsToCSV(filteredRecords)} className="bg-emerald-600 text-white font-bold text-xs px-3 py-2 rounded-lg hover:bg-emerald-500">
+                    📥 CSVデータ出力
+                  </button>
+                </div>
+              </div>
+
+              {/* 集計テーブル */}
+              <div className="bg-white rounded-xl border shadow-sm p-4 overflow-x-auto">
+                <h3 className="font-bold text-sm text-slate-800 mb-3">提出レコード一覧 (最新50件)</h3>
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-600 border-b">
+                      <th className="p-2.5">氏名</th>
+                      <th className="p-2.5">職種</th>
+                      <th className="p-2.5">部署</th>
+                      <th className="p-2.5">年齢層</th>
+                      <th className="p-2.5">対象日</th>
+                      <th className="p-2.5">提出日時</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRecords.slice(0, 50).map((r) => (
+                      <tr key={r.id} className="border-b hover:bg-slate-50">
+                        <td className="p-2.5 font-bold">{r.user.name}</td>
+                        <td className="p-2.5">
+                          <span className={`px-2 py-0.5 rounded font-bold ${r.user.role === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>
+                            {r.user.role || '看護師'}
+                          </span>
+                        </td>
+                        <td className="p-2.5">{r.user.department}</td>
+                        <td className="p-2.5">{r.user.ageGroup}</td>
+                        <td className="p-2.5">{r.user.targetDate}</td>
+                        <td className="p-2.5 text-slate-400">{r.submittedAt}</td>
+                      </tr>
+                    ))}
+                    {filteredRecords.length === 0 && (
+                      <tr><td colSpan="6" className="p-6 text-center text-slate-400">提出データが存在しません。</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 2. 部署別提出進捗 */}
+          {subTab === 'progress' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {DEPARTMENTS.map((dept) => {
+                const count = filteredRecords.filter((r) => r.user.department === dept).length;
+                const target = dept === 'ICU' || dept === 'HCU' ? 25 : 35;
+                const pct = Math.min(100, Math.round((count / target) * 100));
+
+                return (
+                  <div key={dept} className="bg-white p-4 rounded-xl border shadow-sm space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-sm">{dept}</span>
+                      <span className="text-xs font-bold text-slate-500">{count} / {target} 名</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-purple-600 h-full transition-all" style={{ width: `${pct}%` }}></div>
+                    </div>
+                    <div className="text-right text-[11px] font-bold text-purple-700">進捗率: {pct}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 3. マスタ編集 */}
+          {subTab === 'master' && (
+            <MasterEditor tasks={tasks} onAddTask={onAddTask} onDeleteTask={onDeleteTask} />
+          )}
+
+          {/* 4. データ管理 */}
+          {subTab === 'data' && (
+            <div className="bg-white p-6 rounded-xl border space-y-4 max-w-lg">
+              <h3 className="font-bold text-base text-slate-900 border-b pb-2">データ管理・モック生成</h3>
+              <p className="text-xs text-slate-500">デモ検証用のサンプルデータを生成するか、全データを消去します。</p>
+              <div className="space-y-3 pt-2">
+                <button onClick={onGenerateMock} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold p-3 rounded-xl text-xs">
+                  ⚡ 600人規模のサンプル集計データを生成 (複数年・看護師/補助者含む)
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('すべての提出データを完全消去します。よろしいですか？')) {
+                      setAllRecords([]);
+                      localStorage.removeItem('nurse_timestudy_all_submitted_records');
+                      alert('削除完了しました。');
+                    }
+                  }}
+                  className="w-full bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-bold p-3 rounded-xl text-xs"
+                >
+                  🗑️ 全提出データを削除
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // --- マスタ編集ビュー ---
+    function MasterEditor({ tasks, onAddTask, onDeleteTask }) {
+      const [name, setName] = useState('');
+      const [cat, setCat] = useState('直接看護業務');
+      const [targetRole, setTargetRole] = useState('看護師');
+      const [desc, setDesc] = useState('');
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        let color = '#0284c7';
+        let badgeBg = '#e0f2fe';
+        if (cat === '間接看護業務') { color = '#10b981'; badgeBg = '#d1fae5'; }
+        else if (cat === 'その他・管理業務') { color = '#a855f7'; badgeBg = '#f3e8ff'; }
+
+        onAddTask({
+          id: `custom-${Date.now()}`,
+          name: name.trim(),
+          category: cat,
+          color,
+          badgeBg,
+          description: desc.trim() || 'カスタム追加項目',
+          targetRole,
+        });
+        setName('');
+        setDesc('');
+        alert(`新規業務「${name}」を追加しました！`);
+      };
+
+      return (
+        <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white p-5 rounded-xl border space-y-4">
+            <h4 className="font-bold text-sm text-slate-800">＋ 新しい定型業務項目を追加</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-600">対象職種</label>
+                <select value={targetRole} onChange={(e) => setTargetRole(e.target.value)} className="w-full p-2 border rounded-lg text-xs font-bold">
+                  <option value="看護師">🩺 看護師専用</option>
+                  <option value="看護補助者">🤝 看護補助者専用</option>
+                  <option value="共通">🌐 全職種共通</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600">業務名</label>
+                <input type="text" required placeholder="例: 回診補助" value={name} onChange={(e) => setName(e.target.value)} className="w-full p-2 border rounded-lg text-xs" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600">業務カテゴリ</label>
+                <select value={cat} onChange={(e) => setCat(e.target.value)} className="w-full p-2 border rounded-lg text-xs">
+                  <option value="直接看護業務">🟦 直接看護業務</option>
+                  <option value="間接看護業務">🟩 間接看護業務</option>
+                  <option value="その他・管理業務">🟧 その他・管理業務</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600">補足説明</label>
+              <input type="text" placeholder="詳細説明" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full p-2 border rounded-lg text-xs" />
+            </div>
+            <button type="submit" className="bg-purple-600 text-white font-bold text-xs px-4 py-2 rounded-lg">定型業務マスタに追加</button>
+          </form>
+
+          {/* 一覧 */}
+          <div className="bg-white p-5 rounded-xl border space-y-3">
+            <h4 className="font-bold text-sm text-slate-800">登録済み定型業務一覧 ({tasks.length}件)</h4>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {tasks.map((t) => (
+                <div key={t.id} className="p-3 border rounded-lg flex items-center justify-between hover:bg-slate-50">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ backgroundColor: t.badgeBg, color: t.color }}>{t.category}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${t.targetRole === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>
+                      {t.targetRole || '看護師'}
+                    </span>
+                    <span className="font-bold text-sm text-slate-800">{t.name}</span>
+                    <span className="text-xs text-slate-400">{t.description}</span>
+                  </div>
+                  <button onClick={() => onDeleteTask(t.id)} className="text-red-500 text-xs font-bold hover:underline">削除</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // React アプリレンダリング
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

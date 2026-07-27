@@ -1,0 +1,322 @@
+import { useState, useEffect } from 'react';
+import { UserProfile, TimeSlot, TimeStudyRecord, TaskItem } from './types';
+import { generateDefaultTimeSlots, PRESET_TASKS } from './constants';
+import {
+  getUserProfile,
+  saveUserProfile,
+  getDraftSlots,
+  saveDraftSlots,
+  clearDraftSlots,
+  getAllSubmittedRecords,
+  saveSubmittedRecord,
+  getCustomTasks,
+  saveCustomTasks,
+} from './utils/storage';
+import { generateMockRecords } from './utils/mockData';
+import { Header } from './components/Header';
+import { UserSetupModal } from './components/UserSetupModal';
+import { Timeline } from './components/Timeline';
+import { TaskSelectModal } from './components/TaskSelectModal';
+import { AdminModal } from './components/AdminModal';
+import { AdminPanel } from './components/AdminPanel';
+import confetti from 'canvas-confetti';
+
+export function App() {
+  const [activeTab, setActiveTab] = useState<'input' | 'admin'>('input');
+
+  // ユーザー属性
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [showUserSetupModal, setShowUserSetupModal] = useState<boolean>(false);
+
+  // 定型業務マスタ
+  const [tasks, setTasks] = useState<TaskItem[]>(() => {
+    const saved = getCustomTasks();
+    return saved && saved.length > 0 ? saved : PRESET_TASKS;
+  });
+
+  // タイムスタディスロット
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [activeSlot, setActiveSlot] = useState<TimeSlot | null>(null);
+  const [isDraftSaved, setIsDraftSaved] = useState<boolean>(false);
+
+  // 全提出レコード (集計用)
+  const [allRecords, setAllRecords] = useState<TimeStudyRecord[]>([]);
+
+  // 管理者認証状態 (パスワード: okasaikango)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [showAdminAuthModal, setShowAdminAuthModal] = useState<boolean>(false);
+
+  // 初期化処理
+  useEffect(() => {
+    // ユーザー情報の読み込み
+    const savedUser = getUserProfile();
+    if (savedUser) {
+      setUser(savedUser);
+    } else {
+      setShowUserSetupModal(true);
+    }
+
+    // ドラフトスロットの読み込み
+    const savedSlots = getDraftSlots();
+    if (savedSlots && savedSlots.length > 0) {
+      setSlots(savedSlots);
+    } else {
+      setSlots(generateDefaultTimeSlots());
+    }
+
+    // 既存提出レコードの初期化
+    const existing = getAllSubmittedRecords();
+    setAllRecords(existing);
+  }, []);
+
+  // ユーザー設定保存
+  const handleSaveUser = (updatedUser: UserProfile) => {
+    setUser(updatedUser);
+    saveUserProfile(updatedUser);
+    setShowUserSetupModal(false);
+  };
+
+  // ユーザー登録情報・一時保存データの削除
+  const handleDeleteUserProfile = () => {
+    localStorage.removeItem('nurse_timestudy_user_profile');
+    clearDraftSlots();
+    setUser(null);
+    setSlots(generateDefaultTimeSlots());
+    setIsDraftSaved(false);
+    setShowUserSetupModal(true);
+    alert('登録情報および一時保存データを削除しました。');
+  };
+
+  // 管理画面ナビゲーション
+  const handleOpenAdminTab = () => {
+    if (isAdminAuthenticated) {
+      setActiveTab('admin');
+    } else {
+      setShowAdminAuthModal(true);
+    }
+  };
+
+  // パスワード認証成功時 (okasaikango)
+  const handleAdminAuthSuccess = () => {
+    setIsAdminAuthenticated(true);
+    setShowAdminAuthModal(false);
+    setActiveTab('admin');
+  };
+
+  // 定型業務マスタの追加
+  const handleAddTask = (newTask: TaskItem) => {
+    setTasks((prev) => {
+      const updated = [...prev, newTask];
+      saveCustomTasks(updated);
+      return updated;
+    });
+  };
+
+  // 定型業務マスタの削除
+  const handleDeleteTask = (taskId: string) => {
+    setTasks((prev) => {
+      const updated = prev.filter((t) => t.id !== taskId);
+      saveCustomTasks(updated);
+      return updated;
+    });
+  };
+
+  // 全提出データの一括削除 (2段階確認完了後)
+  const handleClearAllRecords = () => {
+    setAllRecords([]);
+    localStorage.removeItem('nurse_timestudy_all_submitted_records');
+    alert('すべての提出データを完全に削除しました。');
+  };
+
+  // 指定された日付のデータの削除 (2段階確認完了後)
+  const handleDeleteRecordsByDate = (targetDateStr: string) => {
+    const updated = allRecords.filter((r) => r.user.targetDate !== targetDateStr);
+    setAllRecords(updated);
+    localStorage.setItem('nurse_timestudy_all_submitted_records', JSON.stringify(updated));
+    alert(`${targetDateStr} の提出データを全件削除しました。`);
+  };
+
+  // コマの業務保存 (TaskSelectModal から呼ばれる)
+  const handleSaveSlotTasks = (slotId: string, taskIds: string[]) => {
+    const updated = slots.map((s) =>
+      s.id === slotId ? { ...s, selectedTaskIds: taskIds } : s
+    );
+    setSlots(updated);
+    saveDraftSlots(updated);
+    setIsDraftSaved(true);
+    setActiveSlot(null);
+  };
+
+  // ドラフト保存
+  const handleSaveDraft = () => {
+    saveDraftSlots(slots);
+    setIsDraftSaved(true);
+    alert('現在の入力状態を一時保存しました。');
+  };
+
+  // 早出スロット（8:30以前）の追加
+  const handleAddEarlySlot = () => {
+    const firstSlot = slots[0];
+    const [h, m] = firstSlot.startTime.split(':').map(Number);
+    let totalM = h * 60 + m - 15;
+    if (totalM < 0) totalM += 1440;
+
+    const startH = String(Math.floor(totalM / 60)).padStart(2, '0');
+    const startM = String(totalM % 60).padStart(2, '0');
+    const newTimeStr = `${startH}:${startM}`;
+
+    const newSlot: TimeSlot = {
+      id: `early-${newTimeStr}`,
+      startTime: newTimeStr,
+      endTime: firstSlot.startTime,
+      isOvertime: true,
+      overtimeType: 'early',
+      selectedTaskIds: [],
+    };
+
+    const updated = [newSlot, ...slots];
+    setSlots(updated);
+    saveDraftSlots(updated);
+  };
+
+  // 残業スロット（17:15以降）の追加
+  const handleAddLateSlot = () => {
+    const lastSlot = slots[slots.length - 1];
+    const [h, m] = lastSlot.endTime.split(':').map(Number);
+    const totalM = h * 60 + m + 15;
+
+    const endH = String(Math.floor(totalM / 60)).padStart(2, '0');
+    const endM = String(totalM % 60).padStart(2, '0');
+    const newEndTimeStr = `${endH}:${endM}`;
+
+    const newSlot: TimeSlot = {
+      id: `late-${lastSlot.endTime}`,
+      startTime: lastSlot.endTime,
+      endTime: newEndTimeStr,
+      isOvertime: true,
+      overtimeType: 'late',
+      selectedTaskIds: [],
+    };
+
+    const updated = [...slots, newSlot];
+    setSlots(updated);
+    saveDraftSlots(updated);
+  };
+
+  // タイムスタディ提出処理
+  const handleSubmitTimeStudy = () => {
+    if (!user) {
+      setShowUserSetupModal(true);
+      return;
+    }
+
+    const unassignedCount = slots.filter((s) => s.selectedTaskIds.length === 0).length;
+
+    if (unassignedCount > 0) {
+      const confirmSubmit = window.confirm(
+        `未入力のコマが ${unassignedCount} 件あります。このまま調査を完了して提出しますか？`
+      );
+      if (!confirmSubmit) return;
+    }
+
+    const newRecord: TimeStudyRecord = {
+      id: `SUB-${Date.now().toString().slice(-6)}`,
+      user,
+      submittedAt: new Date().toLocaleString('ja-JP'),
+      slots,
+    };
+
+    saveSubmittedRecord(newRecord);
+    setAllRecords((prev) => [newRecord, ...prev]);
+    clearDraftSlots();
+
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+
+    alert('タイムスタディの提出が完了しました！ご協力ありがとうございました。');
+  };
+
+  // モックデータ再生成
+  const handleGenerateMockData = () => {
+    const mock600 = generateMockRecords(600);
+    setAllRecords(mock600);
+    alert('複数年（2024, 2025, 2026年）含む600人規模のサンプル集計データを生成・更新しました！');
+  };
+
+  return (
+    <div className="app-layout">
+      {/* 共通ヘッダー */}
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={user}
+        onEditUser={() => setShowUserSetupModal(true)}
+        onOpenAdmin={handleOpenAdminTab}
+        isAdminAuthenticated={isAdminAuthenticated}
+      />
+
+      {/* メインコンテンツ領域 */}
+      <main className="main-content">
+        {activeTab === 'input' && (
+          <Timeline
+            slots={slots}
+            onSlotClick={(slot) => setActiveSlot(slot)}
+            onAddEarlySlot={handleAddEarlySlot}
+            onAddLateSlot={handleAddLateSlot}
+            onSaveDraft={handleSaveDraft}
+            onSubmit={handleSubmitTimeStudy}
+            isDraftSaved={isDraftSaved}
+          />
+        )}
+
+        {activeTab === 'admin' && isAdminAuthenticated && (
+          <AdminPanel
+            records={allRecords}
+            tasks={tasks}
+            onAddTask={handleAddTask}
+            onDeleteTask={handleDeleteTask}
+            onClearAllRecords={handleClearAllRecords}
+            onDeleteRecordsByDate={handleDeleteRecordsByDate}
+            onLogout={() => {
+              setIsAdminAuthenticated(false);
+              setActiveTab('input');
+            }}
+            onGenerateMockData={handleGenerateMockData}
+          />
+        )}
+      </main>
+
+      {/* 属性設定モーダル */}
+      {showUserSetupModal && (
+        <UserSetupModal
+          initialUser={user}
+          onSave={handleSaveUser}
+          onDeleteProfile={handleDeleteUserProfile}
+          isInitialSetup={!user}
+        />
+      )}
+
+      {/* 上部固定ヘッダー付き業務入力フロー画面 */}
+      {activeSlot && (
+        <TaskSelectModal
+          slot={activeSlot}
+          tasks={tasks}
+          userRole={user?.role || '看護師'}
+          onSave={handleSaveSlotTasks}
+          onClose={() => setActiveSlot(null)}
+        />
+      )}
+
+      {/* 管理者パスワード認証モーダル (okasaikango) */}
+      {showAdminAuthModal && (
+        <AdminModal
+          onSuccess={handleAdminAuthSuccess}
+          onClose={() => setShowAdminAuthModal(false)}
+        />
+      )}
+    </div>
+  );
+}
