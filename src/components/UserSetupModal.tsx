@@ -79,25 +79,10 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         <form onSubmit={handleSubmit} className="setup-form">
           {errorMsg && <div className="form-error">{errorMsg}</div>}
 
-          {/* 職種選択 (プルダウン) */}
+          {/* 1. 氏名（全幅） */}
           <div className="form-group">
             <label className="form-label">
-              <Stethoscope className="w-4 h-4 text-sky-600" />
-              <span>職種 <span className="req-badge">必須</span></span>
-            </label>
-            <select
-              className="form-select"
-              value={role}
-              onChange={(e) => setRole(e.target.value as JobRole)}
-            >
-              <option value="看護師">看護師</option>
-              <option value="看護補助者">看護補助者</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              <User className="w-4 h-4 text-slate-500" />
+              <User className="w-3.5 h-3.5 text-slate-500" />
               <span>氏名 <span className="req-badge">必須</span></span>
             </label>
             <input
@@ -110,53 +95,74 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">
-              <Building2 className="w-4 h-4 text-slate-500" />
-              <span>所属部署 <span className="req-badge">選択</span></span>
-            </label>
-            <select
-              className="form-select"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value as Department)}
-            >
-              {DEPARTMENTS.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+          {/* 2. 職種 & 所属部署 (横2列配置) */}
+          <div className="form-row-2">
+            <div className="form-group">
+              <label className="form-label">
+                <Stethoscope className="w-3.5 h-3.5 text-sky-600" />
+                <span>職種 <span className="req-badge">必須</span></span>
+              </label>
+              <select
+                className="form-select"
+                value={role}
+                onChange={(e) => setRole(e.target.value as JobRole)}
+              >
+                <option value="看護師">看護師</option>
+                <option value="看護補助者">看護補助者</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                <span>所属部署 <span className="req-badge">選択</span></span>
+              </label>
+              <select
+                className="form-select"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value as Department)}
+              >
+                {DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">
-              <Award className="w-4 h-4 text-slate-500" />
-              <span>年齢階層 <span className="req-badge">5歳刻み</span></span>
-            </label>
-            <select
-              className="form-select"
-              value={ageGroup}
-              onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
-            >
-              {AGE_GROUPS.map((age) => (
-                <option key={age} value={age}>
-                  {age}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* 3. 年齢階層 & 調査対象日 (横2列配置) */}
+          <div className="form-row-2">
+            <div className="form-group">
+              <label className="form-label">
+                <Award className="w-3.5 h-3.5 text-slate-500" />
+                <span>年齢階層 <span className="req-badge">5歳刻み</span></span>
+              </label>
+              <select
+                className="form-select"
+                value={ageGroup}
+                onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
+              >
+                {AGE_GROUPS.map((age) => (
+                  <option key={age} value={age}>
+                    {age}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">
-              <Calendar className="w-4 h-4 text-slate-500" />
-              <span>調査対象日 <span className="req-badge">デフォルト本日</span></span>
-            </label>
-            <input
-              type="date"
-              className="form-input"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-            />
+            <div className="form-group">
+              <label className="form-label">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>調査対象日</span>
+              </label>
+              <input
+                type="date"
+                className="form-input"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+              />
+            </div>
           </div>
 
           <button type="submit" className="btn-primary btn-submit-setup">
@@ -171,7 +177,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 className="btn-delete-profile"
                 onClick={() => setShowConfirmDelete(true)}
               >
-                <Trash2 className="w-4 h-4 text-red-500" />
+                <Trash2 className="w-3.5 h-3.5 text-red-500" />
                 <span>登録情報・一時保存データを削除する</span>
               </button>
             </div>
