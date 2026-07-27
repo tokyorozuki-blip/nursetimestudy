@@ -195,6 +195,33 @@ export function App() {
     setIsDraftSaved(true);
   };
 
+  // 15分枠入力画面から時間枠・シフトをダイレクト変更・拡張・短縮
+  const handleChangeShiftAndSlots = (
+    newShiftType: ShiftType,
+    newStart?: string,
+    newEnd?: string
+  ) => {
+    setShiftType(newShiftType);
+    if (newStart) setCustomStartTime(newStart);
+    if (newEnd) setCustomEndTime(newEnd);
+
+    // 新しいシフト・時間枠でスロット枠を自動再生成
+    const baseSlots = generateDefaultTimeSlots(newShiftType, newStart, newEnd);
+
+    // 既存スロットの入力済み業務データを新しいスロットへ安全に引き継ぎマージ
+    const existingSlotMap = new Map(slots.map((s) => [s.startTime, s.selectedTaskIds]));
+    const mergedSlots = baseSlots.map((slot) => {
+      const savedTasks = existingSlotMap.get(slot.startTime);
+      if (savedTasks && savedTasks.length > 0) {
+        return { ...slot, selectedTaskIds: savedTasks };
+      }
+      return slot;
+    });
+
+    setSlots(mergedSlots);
+    saveDraftSlots(mergedSlots);
+  };
+
   // ドラフト保存
   const handleSaveDraft = () => {
     saveDraftSlots(slots);
@@ -351,6 +378,10 @@ export function App() {
         {activeTab === 'input' && (
           <Timeline
             slots={slots}
+            shiftType={shiftType}
+            customStartTime={customStartTime}
+            customEndTime={customEndTime}
+            onChangeShiftAndSlots={handleChangeShiftAndSlots}
             onSlotClick={(slot) => setActiveSlot(slot)}
             onAddEarlySlot={handleAddEarlySlot}
             onAddLateSlot={handleAddLateSlot}

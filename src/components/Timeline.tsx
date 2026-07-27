@@ -1,5 +1,5 @@
-import React from 'react';
-import { TimeSlot } from '../types';
+import React, { useState } from 'react';
+import { TimeSlot, ShiftType } from '../types';
 import { PRESET_TASKS } from '../constants';
 import {
   Clock,
@@ -11,10 +11,22 @@ import {
   ChevronRight,
   Sparkles,
   Trash2,
+  Settings2,
+  Calendar,
+  X,
+  Check,
 } from 'lucide-react';
 
 interface TimelineProps {
   slots: TimeSlot[];
+  shiftType?: ShiftType;
+  customStartTime?: string;
+  customEndTime?: string;
+  onChangeShiftAndSlots?: (
+    shiftType: ShiftType,
+    customStart?: string,
+    customEnd?: string
+  ) => void;
   onSlotClick: (slot: TimeSlot) => void;
   onAddEarlySlot: () => void;
   onAddLateSlot: () => void;
@@ -26,6 +38,10 @@ interface TimelineProps {
 
 export const Timeline: React.FC<TimelineProps> = ({
   slots,
+  shiftType = 'day',
+  customStartTime = '09:00',
+  customEndTime = '18:00',
+  onChangeShiftAndSlots,
   onSlotClick,
   onAddEarlySlot,
   onAddLateSlot,
@@ -36,11 +52,25 @@ export const Timeline: React.FC<TimelineProps> = ({
 }) => {
   const taskMap = new Map(PRESET_TASKS.map((t) => [t.id, t]));
 
+  // 時間枠調整パネルの開閉ステート
+  const [showShiftConfig, setShowShiftConfig] = useState<boolean>(false);
+  const [tempShiftType, setTempShiftType] = useState<ShiftType>(shiftType);
+  const [tempStart, setTempStart] = useState<string>(customStartTime);
+  const [tempEnd, setTempEnd] = useState<string>(customEndTime);
+
+  // 時間枠変更の反映
+  const handleApplyShiftChange = () => {
+    if (onChangeShiftAndSlots) {
+      onChangeShiftAndSlots(tempShiftType, tempStart, tempEnd);
+    }
+    setShowShiftConfig(false);
+  };
+
   // 未入力コマ数と進捗度の計算
   const totalSlots = slots.length;
   const filledSlots = slots.filter((s) => s.selectedTaskIds.length > 0).length;
   const unassignedCount = totalSlots - filledSlots;
-  const progressPercent = Math.round((filledSlots / totalSlots) * 100);
+  const progressPercent = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
 
   return (
     <div className="timeline-container">
@@ -84,8 +114,18 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
       </div>
 
-      {/* 2. アクションツールバー (一時保存 / 送信) */}
+      {/* 2. アクションツールバー (時間枠調整 / 一時保存 / 送信) */}
       <div className="action-toolbar">
+        {/* ⏱️ 時間枠ダイレクト変更ボタン */}
+        <button
+          className={`btn-toolbar bg-sky-50 text-sky-800 border-2 border-sky-200 hover:bg-sky-100 ${showShiftConfig ? 'ring-2 ring-sky-500' : ''}`}
+          onClick={() => setShowShiftConfig(!showShiftConfig)}
+          title="勤務時間帯・シフトを画面上で変更します"
+        >
+          <Settings2 className="w-4 h-4 text-sky-600" />
+          <span>時間枠・シフトを変更</span>
+        </button>
+
         <button
           className={`btn-toolbar btn-save ${isDraftSaved ? 'saved' : ''}`}
           onClick={onSaveDraft}
@@ -104,6 +144,81 @@ export const Timeline: React.FC<TimelineProps> = ({
           <span>調査完了・提出</span>
         </button>
       </div>
+
+      {/* ⏱️ 画面上で時間枠・シフトを自由に調整できるポップオーバーカード */}
+      {showShiftConfig && (
+        <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-xl mb-4 border-2 border-sky-400 animate-fadeIn space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+            <div className="flex items-center gap-2 font-bold text-sm text-sky-300">
+              <Clock className="w-4 h-4" />
+              <span>勤務時間枠・シフトの変更</span>
+            </div>
+            <button
+              type="button"
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              onClick={() => setShowShiftConfig(false)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1">勤務シフトを選択</label>
+              <select
+                className="w-full bg-slate-800 border border-slate-700 text-white font-bold rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={tempShiftType}
+                onChange={(e) => setTempShiftType(e.target.value as ShiftType)}
+              >
+                <option value="day">☀️ 日勤 (08:30 ～ 17:15)</option>
+                <option value="night">🌙 夜勤 (16:30 ～ 翌09:30)</option>
+                <option value="custom">⏱️ その他 (開始時間・終了時間を直接指定)</option>
+              </select>
+            </div>
+
+            {tempShiftType === 'custom' && (
+              <div className="grid grid-cols-2 gap-3 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1">開始時間</label>
+                  <input
+                    type="time"
+                    className="w-full bg-slate-900 border border-slate-700 text-white font-mono font-bold text-center rounded-lg py-1.5 text-sm"
+                    value={tempStart}
+                    onChange={(e) => setTempStart(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1">終了時間</label>
+                  <input
+                    type="time"
+                    className="w-full bg-slate-900 border border-slate-700 text-white font-mono font-bold text-center rounded-lg py-1.5 text-sm"
+                    value={tempEnd}
+                    onChange={(e) => setTempEnd(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                onClick={() => setShowShiftConfig(false)}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                onClick={handleApplyShiftChange}
+              >
+                <Check className="w-4 h-4" />
+                <span>この時間枠を適用する</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. 早出追加ボタン (8:30以前) */}
       <div className="overtime-add-wrapper">
