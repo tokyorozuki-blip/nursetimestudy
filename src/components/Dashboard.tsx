@@ -53,10 +53,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string>('');
   const [viewMode, setViewMode] = useState<'standard' | 'annual'>('standard');
+  const [dedupeMode, setDedupeMode] = useState<'latest' | 'all'>('latest');
+
+  // 同一人物（職員ID + 調査対象日）の複数提出データを自動デデュープ（入力内容がある有効なデータを優先選択）
+  const processedRecords = useMemo(() => {
+    if (dedupeMode === 'all') return records;
+
+    const bestMap = new Map<string, TimeStudyRecord>();
+
+    const getFilledCount = (r: TimeStudyRecord) =>
+      r.slots ? r.slots.filter((s) => s.selectedTaskIds && s.selectedTaskIds.length > 0).length : 0;
+
+    records.forEach((rec) => {
+      const key = `${rec.user.staffId || rec.user.name}_${rec.user.targetDate || ''}`;
+      const existing = bestMap.get(key);
+
+      if (!existing) {
+        bestMap.set(key, rec);
+      } else {
+        const existingFilled = getFilledCount(existing);
+        const currentFilled = getFilledCount(rec);
+
+        // 入力コマ数が多い（有効なデータが入っている）方を優先採用！
+        if (currentFilled > existingFilled) {
+          bestMap.set(key, rec);
+        }
+      }
+    });
+
+    return Array.from(bestMap.values());
+  }, [records, dedupeMode]);
 
   // フィルタリング処理
   const filteredRecords = useMemo(() => {
-    return records.filter((rec) => {
+    return processedRecords.filter((rec) => {
       const matchRole =
         selectedRole === 'ALL' || (rec.user.role || '看護師') === selectedRole;
       const matchDept =
@@ -69,7 +99,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         (rec.user.staffId && rec.user.staffId.includes(searchName));
       return matchRole && matchDept && matchAge && matchName;
     });
-  }, [records, selectedRole, selectedDepartment, selectedAgeGroup, searchName]);
+  }, [processedRecords, selectedRole, selectedDepartment, selectedAgeGroup, searchName]);
+
+  // 実人数 (ユニーク職員数) の算出
+  const uniqueUserCount = useMemo(() => {
+    const set = new Set<string>();
+    filteredRecords.forEach((rec) => {
+      set.add(rec.user.staffId || rec.user.name);
+    });
+    return set.size;
+  }, [filteredRecords]);
 
   const taskMap = useMemo(() => {
     return new Map(PRESET_TASKS.map((t) => [t.id, t]));
@@ -406,6 +445,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </select>
         </div>
 
+        <div className="filter-item">
+          <RefreshCw className="w-4 h-4 text-slate-500" />
+          <label>重複データ処理:</label>
+          <select
+            value={dedupeMode}
+            onChange={(e) => setDedupeMode(e.target.value as 'latest' | 'all')}
+          >
+            <option value="latest">最新提出のみ (重複除外・推奨)</option>
+            <option value="all">全提出履歴を含む</option>
+          </select>
+        </div>
+
         <div className="filter-item search-item">
           <Search className="w-4 h-4 text-slate-500" />
           <input
@@ -417,16 +468,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="filter-count">
-          対象件数: <strong>{filteredRecords.length}</strong> 件
+          対象人数: <strong>{uniqueUserCount}</strong> 人 （集計: {filteredRecords.length} 件）
         </div>
       </div>
 
       {/* 4つのサマリーKPIカード */}
       <div className="kpi-grid">
         <div className="kpi-card border-sky">
-          <div className="kpi-label">総提出人数 / データ件数</div>
-          <div className="kpi-value text-sky-700">{filteredRecords.length} 人</div>
-          <div className="kpi-sub">対象部署・属性の集計</div>
+          <div className="kpi-label">実提出人数 (重複除外済)</div>
+          <div className="kpi-value text-sky-700">{uniqueUserCount} 人</div>
+          <div className="kpi-sub">集計データ: {filteredRecords.length} 件</div>
         </div>
 
         <div className="kpi-card border-blue">

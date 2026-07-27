@@ -72,7 +72,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       (r) => r.user.department === dept && (progressRoleFilter === 'ALL' || (r.user.role || '看護師') === progressRoleFilter)
     );
     const targetCount = dept === 'ICU' || dept === 'HCU' ? 25 : 35;
-    const submittedCount = deptRecords.length;
+    const uniqueStaffSet = new Set(deptRecords.map((r) => r.user.staffId || r.user.name));
+    const submittedCount = uniqueStaffSet.size;
     const percent = Math.min(100, Math.round((submittedCount / targetCount) * 100));
 
     return {

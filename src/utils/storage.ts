@@ -261,11 +261,15 @@ export async function fetchSubmittedRecordsFromVercel(): Promise<TimeStudyRecord
         .filter((r): r is TimeStudyRecord => r !== null);
 
       const recordMap = new Map<string, TimeStudyRecord>();
+      // クラウドの最新データでMAPを構築（クラウドを優先正本とする）
+      validCloudRecords.forEach((r) => recordMap.set(r.id, r));
+      // 未送信の完全新規ローカルレコードがあれば補完追加
       localRecords.forEach((r) => {
         const norm = normalizeTimeStudyRecord(r);
-        if (norm) recordMap.set(norm.id, norm);
+        if (norm && !recordMap.has(norm.id)) {
+          recordMap.set(norm.id, norm);
+        }
       });
-      validCloudRecords.forEach((r) => recordMap.set(r.id, r));
 
       const merged = Array.from(recordMap.values());
       safeSetItem(RECORDS_KEY, JSON.stringify(merged));
