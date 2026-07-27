@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="header-right-actions">
           {user ? (
-            <div className="user-profile-badge">
+            <button className="user-profile-badge cursor-pointer hover:bg-slate-50 transition-colors" onClick={onEditUser} title="登録・属性情報の変更・切り替え">
               <User className="w-4 h-4 text-sky-600" />
               <div className="user-info-text">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -61,7 +61,8 @@ export const Header: React.FC<HeaderProps> = ({
                   {user.department} ({user.ageGroup})
                 </span>
               </div>
-            </div>
+              <Edit3 className="w-3.5 h-3.5 text-slate-400 ml-1 shrink-0" />
+            </button>
           ) : (
             <button className="user-profile-badge" onClick={onEditUser}>
               <User className="w-4 h-4 text-sky-600" />

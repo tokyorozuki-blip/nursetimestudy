@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole, UserProfile, Department, AgeGroup } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
 import { Dashboard } from './Dashboard';
@@ -85,12 +85,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // ユーザー削除確認モーダルステート
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
 
-  // クラウド＆ローカルから最新の登録ユーザーリストを再取得
+  // クラウド＆ローカルから最新の登録ユーザーリストを再取得（提出レコード内のユーザーも補完マージ）
   const refreshRegisteredUsers = async () => {
     setUserIsSyncing(true);
     try {
-      const users = await fetchUsersFromVercel();
-      setRegisteredUsers(Array.isArray(users) ? users : []);
+      const fetched = await fetchUsersFromVercel();
+      const userMap = new Map<string, UserProfile>();
+
+      // 1. 登録済みユーザーリストを追加
+      if (Array.isArray(fetched)) {
+        fetched.forEach((u) => {
+          if (u && u.staffId && u.staffId.trim() !== '') {
+            userMap.set(u.staffId, u);
+          }
+        });
+      }
+
+      // 2. 提出された集計レコード内のユーザー情報もマージ補完
+      records.forEach((r) => {
+        if (r.user && r.user.staffId && r.user.staffId.trim() !== '' && !userMap.has(r.user.staffId)) {
+          userMap.set(r.user.staffId, {
+            staffId: r.user.staffId,
+            name: r.user.name || '名前未設定',
+            role: r.user.role || '看護師',
+            department: r.user.department || 'ICU',
+            ageGroup: r.user.ageGroup || '30〜34歳',
+            deviceId: r.user.deviceId || '',
+          });
+        }
+      });
+
+      const mergedList = Array.from(userMap.values());
+      setRegisteredUsers(mergedList);
     } catch (err) {
       console.error('Failed to refresh users:', err);
     } finally {
@@ -98,17 +124,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  // 登録ユーザーの絞り込み一覧
+  // 管理画面起動時および「ユーザー登録状況・一覧管理」タブ選択時に自動でクラウドDBから最新登録ユーザー情報を自動取得・同期
+  useEffect(() => {
+    refreshRegisteredUsers();
+  }, []);
+
+  useEffect(() => {
+    if (activeSubTab === 'users') {
+      refreshRegisteredUsers();
+    }
+  }, [activeSubTab]);
+
+  // 登録ユーザーの絞り込み一覧（無効データ除外ガード付き）
   const filteredUsersList = useMemo(() => {
-    return registeredUsers.filter((u) => {
-      const matchRole = userRoleFilter === 'ALL' || (u.role || '看護師') === userRoleFilter;
-      const matchDept = userDeptFilter === 'ALL' || u.department === userDeptFilter;
-      const matchSearch =
-        !userSearchText ||
-        (u.name && u.name.toLowerCase().includes(userSearchText.toLowerCase())) ||
-        (u.staffId && u.staffId.includes(userSearchText));
-      return matchRole && matchDept && matchSearch;
-    });
+    return registeredUsers
+      .filter((u) => u && u.staffId && u.staffId.trim() !== '')
+      .filter((u) => {
+        const matchRole = userRoleFilter === 'ALL' || (u.role || '看護師') === userRoleFilter;
+        const matchDept = userDeptFilter === 'ALL' || (u.department || '未設定') === userDeptFilter;
+        const matchSearch =
+          !userSearchText ||
+          (u.name && u.name.toLowerCase().includes(userSearchText.toLowerCase())) ||
+          (u.staffId && u.staffId.includes(userSearchText));
+        return matchRole && matchDept && matchSearch;
+      });
   }, [registeredUsers, userRoleFilter, userDeptFilter, userSearchText]);
 
   // 編集ダイアログを開く
