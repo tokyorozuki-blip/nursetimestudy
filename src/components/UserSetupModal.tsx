@@ -71,38 +71,20 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         <form onSubmit={handleSubmit} className="setup-form">
           {errorMsg && <div className="form-error">{errorMsg}</div>}
 
-          {/* 職種選択 (携帯・スマートフォン操作に特化した大型タッチボタン) */}
+          {/* 職種選択 (プルダウン) */}
           <div className="form-group">
             <label className="form-label">
               <Stethoscope className="w-4 h-4 text-sky-600" />
               <span>職種 <span className="req-badge">必須</span></span>
             </label>
-
-            <div className="grid grid-cols-2 gap-3 mt-1.5">
-              <button
-                type="button"
-                onClick={() => setRole('看護師')}
-                className={`w-full py-4 px-3 rounded-2xl border-4 text-center transition-all duration-200 active:scale-95 flex items-center justify-center font-extrabold text-base select-none ${
-                  role === '看護師'
-                    ? 'bg-rose-600 border-rose-600 text-white shadow-2xl ring-4 ring-rose-300 scale-[1.04] z-10'
-                    : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 opacity-60 hover:opacity-90'
-                }`}
-              >
-                看護師
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole('看護補助者')}
-                className={`w-full py-4 px-3 rounded-2xl border-4 text-center transition-all duration-200 active:scale-95 flex items-center justify-center font-extrabold text-base select-none ${
-                  role === '看護補助者'
-                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xl ring-4 ring-emerald-300 scale-[1.04] z-10'
-                    : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 opacity-60 hover:opacity-90'
-                }`}
-              >
-                看護補助者
-              </button>
-            </div>
+            <select
+              className="form-select"
+              value={role}
+              onChange={(e) => setRole(e.target.value as JobRole)}
+            >
+              <option value="看護師">看護師</option>
+              <option value="看護補助者">看護補助者</option>
+            </select>
           </div>
 
           <div className="form-group">
