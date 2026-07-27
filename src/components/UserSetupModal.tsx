@@ -77,19 +77,16 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
   // ステップ状態: 'welcome' | 'id' | 'profile' | 'shift' | 'admin' | 'edit_id' | 'edit_profile'
   const [step, setStep] = useState<'welcome' | 'id' | 'profile' | 'shift' | 'admin' | 'edit_id' | 'edit_profile'>('welcome');
 
-  const [staffId, setStaffId] = useState<string>(initialUser?.staffId || '');
-  const [name, setName] = useState<string>(initialUser?.name || '');
-  const [role, setRole] = useState<JobRole>(initialUser?.role || '看護師');
-  const [department, setDepartment] = useState<Department>(
-    initialUser?.department || 'ICU'
-  );
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>(
-    initialUser?.ageGroup || '25〜29歳'
-  );
+  // 再アクセス・再ログイン時に過去入力情報が残らないよう初期値はすべて空にクリア
+  const [staffId, setStaffId] = useState<string>('');
+  const [name, setName] = useState<string>('');
+  const [role, setRole] = useState<JobRole>('看護師');
+  const [department, setDepartment] = useState<Department>('ICU');
+  const [ageGroup, setAgeGroup] = useState<AgeGroup>('25〜29歳');
 
   // 変更・削除用ID入力ステート
-  const [editStaffId, setEditStaffId] = useState<string>(initialUser?.staffId || '');
-  const [editTargetUser, setEditTargetUser] = useState<UserProfile | null>(initialUser);
+  const [editStaffId, setEditStaffId] = useState<string>('');
+  const [editTargetUser, setEditTargetUser] = useState<UserProfile | null>(null);
 
   // 入力日 ＆ 勤務シフト
   const [targetDate, setTargetDate] = useState<string>(initialTargetDate || todayStr);
@@ -103,6 +100,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [showConfirmDelete, setShowConfirmDelete] = useState<boolean>(false);
+
+  // フォーム入力値のリセット（新規選択・再ログイン時用）
+  const resetFormState = () => {
+    setStaffId('');
+    setName('');
+    setRole('看護師');
+    setDepartment('ICU');
+    setAgeGroup('25〜29歳');
+    setEditStaffId('');
+    setEditTargetUser(null);
+    setErrorMsg('');
+  };
 
   // モーダル起動時に Vercel クラウドから全端末の最新登録IDを非同期取得
   useEffect(() => {
@@ -122,7 +131,14 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         setRole(existing.role);
         setDepartment(existing.department);
         setAgeGroup(existing.ageGroup);
+      } else {
+        setName('');
+        setRole('看護師');
+        setDepartment('ICU');
+        setAgeGroup('25〜29歳');
       }
+    } else {
+      setName('');
     }
   };
 
@@ -142,9 +158,11 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         setAgeGroup(found.ageGroup);
       } else {
         setEditTargetUser(null);
+        setName('');
       }
     } else {
       setEditTargetUser(null);
+      setName('');
     }
   };
 
@@ -241,12 +259,12 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className={`modal-card modal-setup ${step === 'welcome' ? 'max-w-4xl md:max-w-5xl w-full p-6 md:p-8' : ''}`}>
+      <div className={`modal-card modal-setup ${step === 'welcome' ? 'max-w-[1000px] w-full p-6 md:p-8' : ''}`}>
         {/* ==================================================== */}
         {/* スタート選択メニュー画面 ('welcome')                 */}
         {/* ==================================================== */}
         {step === 'welcome' && (
-          <div className="flex flex-col items-center text-center space-y-5 py-2 w-full">
+          <div className="flex flex-col items-center text-center space-y-5 py-2 w-full max-w-[1000px] mx-auto">
             <div className="setup-header text-center mb-2">
               <div className="setup-icon-badge mx-auto bg-sky-100 p-3.5 rounded-2xl w-16 h-16 flex items-center justify-center mb-3 shadow-sm">
                 <Stethoscope className="w-9 h-9 text-sky-600" />
@@ -267,10 +285,10 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setErrorMsg('');
+                  resetFormState();
                   setStep('id');
                 }}
-                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-emerald-600 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -288,10 +306,10 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setErrorMsg('');
+                  resetFormState();
                   setStep('id');
                 }}
-                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-sky-600 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -309,11 +327,11 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setErrorMsg('');
+                  resetFormState();
                   setSuccessMsg('');
                   setStep('edit_id');
                 }}
-                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-slate-300 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-slate-300 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -334,7 +352,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-full h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-rose-300 bg-rose-50/90 hover:bg-rose-100 text-rose-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-rose-300 bg-rose-50/90 hover:bg-rose-100 text-rose-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-rose-600 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -383,6 +401,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
                   className="form-input font-mono text-center text-lg tracking-widest"
                   placeholder="例: 123456"
                   maxLength={6}
@@ -482,6 +501,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
                   className="form-input"
                   placeholder="例: 山田 花子"
                   value={name}
@@ -780,6 +800,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
                   className="form-input font-mono text-center text-lg tracking-widest"
                   placeholder="例: 123456"
                   maxLength={6}
