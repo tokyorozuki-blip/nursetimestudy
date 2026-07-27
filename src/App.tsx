@@ -371,6 +371,12 @@ export function App() {
             }}
             onGenerateMockData={handleGenerateMockData}
             onOpenEditMaster={() => setShowTaskMasterModal(true)}
+            onRefreshRecords={() => {
+              fetchSubmittedRecordsFromVercel().then((updated) => {
+                setAllRecords(updated);
+                alert(`Vercelクラウドから最新データを同期しました。（全 ${updated.length} 件）`);
+              });
+            }}
           />
         </main>
       </div>

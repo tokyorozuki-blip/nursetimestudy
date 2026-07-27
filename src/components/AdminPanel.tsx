@@ -30,6 +30,7 @@ interface AdminPanelProps {
   onLogout: () => void;
   onGenerateMockData: () => void;
   onOpenEditMaster?: () => void;
+  onRefreshRecords?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -42,6 +43,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onLogout,
   onGenerateMockData,
   onOpenEditMaster,
+  onRefreshRecords,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'progress' | 'master' | 'data'>('dashboard');
 
@@ -140,13 +142,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        <button
-          className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95 shrink-0"
-          onClick={onLogout}
-        >
-          <LogOut className="w-4 h-4" />
-          <span>管理者ログアウト（初期画面に戻る）</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onRefreshRecords && (
+            <button
+              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95 shrink-0 cursor-pointer"
+              onClick={onRefreshRecords}
+              title="Vercelクラウドから他端末の最新提出データを即時読み込み"
+            >
+              <span>🔄 最新提出データをクラウドから同期</span>
+            </button>
+          )}
+
+          <button
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95 shrink-0 cursor-pointer"
+            onClick={onLogout}
+          >
+            <LogOut className="w-4 h-4" />
+            <span>管理者ログアウト</span>
+          </button>
+        </div>
       </div>
 
       {/* サブタブ */}
