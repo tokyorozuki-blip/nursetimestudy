@@ -748,23 +748,23 @@
                   <button
                     type="button"
                     onClick={() => setRole('看護師')}
-                    className={`w-full min-h-[72px] p-3.5 rounded-2xl border-4 text-left transition-all duration-150 active:scale-95 flex flex-col justify-between select-none ${
+                    className={`w-full min-h-[76px] p-4 rounded-2xl border-4 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between select-none ${
                       role === '看護師'
-                        ? 'border-sky-600 bg-sky-100/90 text-sky-950 shadow-xl ring-4 ring-sky-300/50 scale-[1.02]'
-                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                        ? 'bg-sky-600 border-sky-600 text-white shadow-2xl ring-4 ring-sky-300 scale-[1.03] z-10'
+                        : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200 opacity-60 hover:opacity-90'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-extrabold text-base flex items-center gap-1.5">
+                      <span className={`font-extrabold text-base flex items-center gap-1.5 ${role === '看護師' ? 'text-white' : 'text-slate-700'}`}>
                         🩺 看護師
                       </span>
                       {role === '看護師' && (
-                        <span className="text-[10px] font-extrabold bg-sky-600 text-white px-2 py-0.5 rounded-full shadow">
+                        <span className="text-[10px] font-extrabold bg-white text-sky-700 px-2 py-0.5 rounded-full shadow-md">
                           ✓ 選択中
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 font-medium mt-1 leading-tight">
+                    <p className={`text-[11px] font-medium mt-1 leading-tight ${role === '看護師' ? 'text-sky-100' : 'text-slate-400'}`}>
                       処置・バイタル・カルテ等
                     </p>
                   </button>
@@ -772,23 +772,23 @@
                   <button
                     type="button"
                     onClick={() => setRole('看護補助者')}
-                    className={`w-full min-h-[72px] p-3.5 rounded-2xl border-4 text-left transition-all duration-150 active:scale-95 flex flex-col justify-between select-none ${
+                    className={`w-full min-h-[76px] p-4 rounded-2xl border-4 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between select-none ${
                       role === '看護補助者'
-                        ? 'border-emerald-600 bg-emerald-100/90 text-emerald-950 shadow-xl ring-4 ring-emerald-300/50 scale-[1.02]'
-                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xl ring-4 ring-emerald-300 scale-[1.03] z-10'
+                        : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200 opacity-60 hover:opacity-90'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-extrabold text-base flex items-center gap-1.5">
+                      <span className={`font-extrabold text-base flex items-center gap-1.5 ${role === '看護補助者' ? 'text-white' : 'text-slate-700'}`}>
                         🤝 看護補助者
                       </span>
                       {role === '看護補助者' && (
-                        <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow">
+                        <span className="text-[10px] font-extrabold bg-white text-emerald-700 px-2 py-0.5 rounded-full shadow-md">
                           ✓ 選択中
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 font-medium mt-1 leading-tight">
+                    <p className={`text-[11px] font-medium mt-1 leading-tight ${role === '看護補助者' ? 'text-emerald-100' : 'text-slate-400'}`}>
                       環境整備・ケア補助等
                     </p>
                   </button>
