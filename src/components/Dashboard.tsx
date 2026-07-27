@@ -60,7 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const matchAge =
         selectedAgeGroup === 'ALL' || rec.user.ageGroup === selectedAgeGroup;
       const matchName =
-        !searchName || rec.user.name.toLowerCase().includes(searchName.toLowerCase());
+        !searchName ||
+        rec.user.name.toLowerCase().includes(searchName.toLowerCase()) ||
+        (rec.user.staffId && rec.user.staffId.includes(searchName));
       return matchRole && matchDept && matchAge && matchName;
     });
   }, [records, selectedRole, selectedDepartment, selectedAgeGroup, searchName]);
@@ -268,9 +270,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* ダッシュボードヘッダー */}
       <div className="dash-header">
         <div>
-          <h2 className="dash-title">
-            <PieChart className="w-6 h-6 text-sky-600 inline-icon" />
-            看護業務量 視覚化・集計ダッシュボード
+          <h2 className="dash-title text-rose-900 flex items-center gap-2 flex-wrap">
+            <PieChart className="w-6 h-6 text-pink-600 inline-icon" />
+            <span>看護業務量 視覚化・集計ダッシュボード</span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-300">
+              📊 管理者モード (ピンク)
+            </span>
           </h2>
           <p className="dash-sub">
             病棟別・個人別・年齢層および年単位（経年トレンド）での業務時間比較
@@ -381,7 +386,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <Search className="w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="氏名で検索..."
+            placeholder="氏名または職員ID(6桁)で検索..."
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
           />
@@ -485,6 +490,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <table className="dash-table">
             <thead>
               <tr>
+                <th>職員ID</th>
                 <th>氏名</th>
                 <th>職種</th>
                 <th>部署</th>
@@ -515,6 +521,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 return (
                   <tr key={rec.id}>
+                    <td className="font-mono text-slate-700 font-bold">{rec.user.staffId || '-'}</td>
                     <td className="font-bold">{rec.user.name}</td>
                     <td>
                       <span className={`text-xs px-2 py-0.5 rounded font-bold ${rec.user.role === '看護補助者' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>

@@ -4,6 +4,7 @@ import { generateDefaultTimeSlots, PRESET_TASKS } from './constants';
 import {
   getUserProfile,
   saveUserProfile,
+  logoutUserProfile,
   getDraftSlots,
   saveDraftSlots,
   clearDraftSlots,
@@ -23,6 +24,13 @@ import confetti from 'canvas-confetti';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'input' | 'admin'>('input');
+
+  // 調査対象日 (初期値: 本日の日付)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [targetDate, setTargetDate] = useState<string>(todayStr);
+
+  // 勤務シフト (日勤 8:30-17:15 / 夜勤 16:30-翌9:30)
+  const [shiftType, setShiftType] = useState<ShiftType>('day');
 
   // ユーザー属性
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -61,7 +69,7 @@ export function App() {
     if (savedSlots && savedSlots.length > 0) {
       setSlots(savedSlots);
     } else {
-      setSlots(generateDefaultTimeSlots());
+      setSlots(generateDefaultTimeSlots('day'));
     }
 
     // 既存提出レコードの初期化
@@ -69,22 +77,38 @@ export function App() {
     setAllRecords(existing);
   }, []);
 
-  // ユーザー設定保存
-  const handleSaveUser = (updatedUser: UserProfile) => {
+  // ユーザー設定・シフト・調査日確定保存
+  const handleSaveUser = (updatedUser: UserProfile, selectedTargetDate: string, selectedShiftType: ShiftType) => {
     setUser(updatedUser);
+    setTargetDate(selectedTargetDate);
+    setShiftType(selectedShiftType);
     saveUserProfile(updatedUser);
+
+    // 選択されたシフト (日勤 / 夜勤) の時間枠スロットを自動生成
+    const newSlots = generateDefaultTimeSlots(selectedShiftType);
+    setSlots(newSlots);
+    saveDraftSlots(newSlots);
+
     setShowUserSetupModal(false);
   };
 
   // ユーザー登録情報・一時保存データの削除
   const handleDeleteUserProfile = () => {
-    localStorage.removeItem('nurse_timestudy_user_profile');
-    clearDraftSlots();
+    logoutUserProfile();
     setUser(null);
     setSlots(generateDefaultTimeSlots());
     setIsDraftSaved(false);
     setShowUserSetupModal(true);
     alert('登録情報および一時保存データを削除しました。');
+  };
+
+  // ユーザー切替 / ログアウト処理
+  const handleLogoutUser = () => {
+    logoutUserProfile();
+    setUser(null);
+    setSlots(generateDefaultTimeSlots());
+    setIsDraftSaved(false);
+    setShowUserSetupModal(true);
   };
 
   // 管理画面ナビゲーション
@@ -229,7 +253,10 @@ export function App() {
 
     const newRecord: TimeStudyRecord = {
       id: `SUB-${Date.now().toString().slice(-6)}`,
-      user,
+      user: {
+        ...user,
+        targetDate,
+      },
       submittedAt: new Date().toLocaleString('ja-JP'),
       slots,
     };
@@ -254,14 +281,27 @@ export function App() {
     alert('複数年（2024, 2025, 2026年）含む600人規模のサンプル集計データを生成・更新しました！');
   };
 
+  // 画面モード・職種に応じたテーマカラー判定
+  // 管理画面: theme-admin (ピンクベース) / 看護補助者: theme-aid (オレンジベース) / 看護師: theme-nurse (緑ベース)
+  const themeClass =
+    activeTab === 'admin'
+      ? 'theme-admin'
+      : user?.role === '看護補助者'
+      ? 'theme-aid'
+      : 'theme-nurse';
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${themeClass}`}>
       {/* 共通ヘッダー */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         user={user}
+        targetDate={targetDate}
+        onChangeTargetDate={setTargetDate}
+        shiftType={shiftType}
         onEditUser={() => setShowUserSetupModal(true)}
+        onLogoutUser={handleLogoutUser}
         onOpenAdmin={handleOpenAdminTab}
         isAdminAuthenticated={isAdminAuthenticated}
       />
@@ -298,10 +338,12 @@ export function App() {
         )}
       </main>
 
-      {/* 属性設定モーダル */}
+      {/* 属性設定・ログインモーダル */}
       {showUserSetupModal && (
         <UserSetupModal
           initialUser={user}
+          initialTargetDate={targetDate}
+          initialShiftType={shiftType}
           onSave={handleSaveUser}
           onDeleteProfile={handleDeleteUserProfile}
           isInitialSetup={!user}

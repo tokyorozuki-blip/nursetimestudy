@@ -78,10 +78,19 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
         </div>
 
         {/* サブインフォバー */}
-        <div className="flow-sub-bar">
-          <span className="flow-hint">
-            💡 同時に行った業務を<strong>最大3つ</strong>までタップして選択してください。
-          </span>
+        <div className="flow-sub-bar flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+              userRole === '看護補助者'
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                : 'bg-sky-100 text-sky-800 border border-sky-300'
+            }`}>
+              【{userRole}専用】入力項目
+            </span>
+            <span className="flow-hint">
+              💡 同時に行った業務を<strong>最大3つ</strong>タップして選択してください。
+            </span>
+          </div>
           {warningMsg && (
             <div className="flow-warning">
               <AlertCircle className="w-4 h-4" />

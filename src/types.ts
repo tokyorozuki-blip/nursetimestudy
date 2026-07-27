@@ -34,6 +34,9 @@ export type AgeGroup =
 // 職種の型定義
 export type JobRole = '看護師' | '看護補助者';
 
+// 勤務シフトの型定義 (日勤: 8:30-17:15 / 夜勤: 16:30-翌9:30)
+export type ShiftType = 'day' | 'night';
+
 // 業務大カテゴリ
 export type CategoryGroup = '直接看護業務' | '間接看護業務' | 'その他・管理業務';
 
@@ -50,11 +53,12 @@ export interface TaskItem {
 
 // ユーザー情報
 export interface UserProfile {
+  staffId: string;   // 6桁の職員ID
   name: string;
   role: JobRole;
   department: Department;
   ageGroup: AgeGroup;
-  targetDate: string; // YYYY-MM-DD
+  targetDate?: string; // YYYY-MM-DD
   deviceId?: string;  // 端末固有ID
 }
 
@@ -73,5 +77,6 @@ export interface TimeStudyRecord {
   id: string;
   user: UserProfile;
   submittedAt: string;
+  shiftType?: ShiftType;
   slots: TimeSlot[];
 }

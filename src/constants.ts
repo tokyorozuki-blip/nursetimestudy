@@ -1,4 +1,4 @@
-import { Department, AgeGroup, TaskItem, TimeSlot } from './types';
+import { Department, AgeGroup, TaskItem, TimeSlot, ShiftType } from './types';
 
 // 指定の全18部署
 export const DEPARTMENTS: Department[] = [
@@ -290,29 +290,41 @@ export const PRESET_TASKS: TaskItem[] = [
   },
 ];
 
-// 標準勤務時間 08:30 ~ 17:15（15分刻み）の生成ロジック
-export function generateDefaultTimeSlots(): TimeSlot[] {
+// 勤務時間 (日勤 08:30~17:15 / 夜勤 16:30~翌09:30) の15分刻みスロット生成ロジック
+export function generateDefaultTimeSlots(shiftType: ShiftType = 'day'): TimeSlot[] {
   const slots: TimeSlot[] = [];
-  const startHour = 8;
-  const startMinute = 30;
-  const endHour = 17;
-  const endMinute = 15;
 
-  let currentTotalMinutes = startHour * 60 + startMinute;
-  const endTotalMinutes = endHour * 60 + endMinute;
+  let startTotalMinutes: number;
+  let endTotalMinutes: number;
+
+  if (shiftType === 'night') {
+    // 夜勤: 16:30 (990分) ～ 翌9:30 (2010分)
+    startTotalMinutes = 16 * 60 + 30;
+    endTotalMinutes = (24 + 9) * 60 + 30;
+  } else {
+    // 日勤: 08:30 (510分) ～ 17:15 (1035分)
+    startTotalMinutes = 8 * 60 + 30;
+    endTotalMinutes = 17 * 60 + 15;
+  }
+
+  let currentTotalMinutes = startTotalMinutes;
 
   while (currentTotalMinutes < endTotalMinutes) {
     const nextTotalMinutes = currentTotalMinutes + 15;
 
-    const startH = String(Math.floor(currentTotalMinutes / 60)).padStart(2, '0');
-    const startM = String(currentTotalMinutes % 60).padStart(2, '0');
+    const actualStartM = currentTotalMinutes % (24 * 60);
+    const startH = String(Math.floor(actualStartM / 60)).padStart(2, '0');
+    const startM = String(actualStartM % 60).padStart(2, '0');
 
-    const endH = String(Math.floor(nextTotalMinutes / 60)).padStart(2, '0');
-    const endM = String(nextTotalMinutes % 60).padStart(2, '0');
+    const actualEndM = nextTotalMinutes % (24 * 60);
+    const endH = String(Math.floor(actualEndM / 60)).padStart(2, '0');
+    const endM = String(actualEndM % 60).padStart(2, '0');
 
-    const timeStr = `${startH}:${startM}`;
+    const isNextDay = currentTotalMinutes >= 24 * 60;
+    const slotId = `${startH}:${startM}${isNextDay ? '-next' : ''}`;
+
     slots.push({
-      id: timeStr,
+      id: slotId,
       startTime: `${startH}:${startM}`,
       endTime: `${endH}:${endM}`,
       isOvertime: false,

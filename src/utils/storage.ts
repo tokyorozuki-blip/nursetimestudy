@@ -1,6 +1,7 @@
 import { UserProfile, TimeSlot, TimeStudyRecord, TaskItem } from '../types';
 
 const USER_KEY = 'nurse_timestudy_user_profile';
+const USERS_DB_KEY = 'nurse_timestudy_all_users_db';
 const SLOTS_KEY = 'nurse_timestudy_draft_slots';
 const RECORDS_KEY = 'nurse_timestudy_all_submitted_records';
 const TASKS_KEY = 'nurse_timestudy_custom_tasks';
@@ -16,13 +17,40 @@ export function getOrCreateDeviceId(): string {
   return deviceId;
 }
 
-// ユーザー属性の一時保存・取得（端末ごとに独立管理）
+// 全登録ユーザーDBの取得
+export function getAllRegisteredUsers(): UserProfile[] {
+  const data = localStorage.getItem(USERS_DB_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+// 職員ID(6桁)によるユーザー検索
+export function findUserByStaffId(staffId: string): UserProfile | null {
+  const users = getAllRegisteredUsers();
+  return users.find((u) => u.staffId === staffId) || null;
+}
+
+// ユーザー情報保存（カレントログイン情報 ＆ 全ユーザーDB更新）
 export function saveUserProfile(user: UserProfile): void {
   const deviceId = user.deviceId || getOrCreateDeviceId();
   const updatedUser = { ...user, deviceId };
   localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+
+  const users = getAllRegisteredUsers();
+  const index = users.findIndex((u) => u.staffId === user.staffId);
+  if (index >= 0) {
+    users[index] = updatedUser;
+  } else {
+    users.push(updatedUser);
+  }
+  localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
 }
 
+// カレントログインユーザーの取得
 export function getUserProfile(): UserProfile | null {
   const data = localStorage.getItem(USER_KEY);
   if (!data) return null;
@@ -35,6 +63,12 @@ export function getUserProfile(): UserProfile | null {
   } catch {
     return null;
   }
+}
+
+// ユーザーログアウト処理
+export function logoutUserProfile(): void {
+  localStorage.removeItem(USER_KEY);
+  clearDraftSlots();
 }
 
 // タイムスロット（一時保存データ）の保存・取得

@@ -13,6 +13,7 @@ export function exportRecordsToCSV(records: TimeStudyRecord[], filename: string 
   const headers = [
     '提出ID',
     '調査対象日',
+    '職員ID',
     '氏名',
     '職種',
     '部署',
@@ -34,6 +35,7 @@ export function exportRecordsToCSV(records: TimeStudyRecord[], filename: string 
       rows.push([
         record.id,
         record.user.targetDate,
+        `"${record.user.staffId || ''}"`,
         `"${record.user.name.replace(/"/g, '""')}"`,
         `"${record.user.role || '看護師'}"`,
         `"${record.user.department}"`,

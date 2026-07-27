@@ -81,6 +81,7 @@ export function generateMockRecords(count: number = 600): TimeStudyRecord[] {
     records.push({
       id: `REC-${10000 + i}`,
       user: {
+        staffId: String(100000 + i),
         name,
         role,
         department,
