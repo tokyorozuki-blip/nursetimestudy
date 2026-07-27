@@ -138,9 +138,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        <button className="btn-logout" onClick={onLogout}>
+        <button
+          className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95 shrink-0"
+          onClick={onLogout}
+        >
           <LogOut className="w-4 h-4" />
-          <span>ログアウト（管理画面を抜ける）</span>
+          <span>管理者ログアウト（初期画面に戻る）</span>
         </button>
       </div>
 

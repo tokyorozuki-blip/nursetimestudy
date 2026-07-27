@@ -175,7 +175,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 pt-2">
+            <div className="grid grid-cols-1 gap-3 pt-2 w-full">
               {/* 🟢 1. 初めて使う（新規登録） */}
               <button
                 type="button"
@@ -183,18 +183,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('profile');
                 }}
-                className="p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex items-center gap-3.5 text-left transition-all duration-150 active:scale-98 shadow-sm group"
+                className="w-full p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex items-center gap-3.5 text-left transition-all duration-150 active:scale-98 shadow-sm group"
               >
-                <div className="p-2.5 rounded-xl bg-emerald-600 text-white shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center">
                   <UserPlus className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="font-extrabold text-sm text-emerald-900 flex items-center gap-1.5">
                     <span>初めて使う</span>
-                    <span className="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-bold">新規登録</span>
+                    <span className="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-bold shrink-0">新規登録</span>
                   </div>
-                  <div className="text-xs text-emerald-700 mt-0.5">
-                    職員ID・氏名・部署・職種を登録して調査を開始します
+                  <div className="text-xs text-emerald-700 mt-0.5 truncate">
+                    職員ID・氏名・部署・職種を登録して調査を開始
                   </div>
                 </div>
               </button>
@@ -206,18 +206,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="p-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex items-center gap-3.5 text-left transition-all duration-150 active:scale-98 shadow-sm group"
+                className="w-full p-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex items-center gap-3.5 text-left transition-all duration-150 active:scale-98 shadow-sm group"
               >
-                <div className="p-2.5 rounded-xl bg-sky-600 text-white shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-11 h-11 rounded-xl bg-sky-600 text-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center">
                   <LogInIcon className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="font-extrabold text-sm text-sky-900 flex items-center gap-1.5">
                     <span>既に登録済み</span>
-                    <span className="text-[10px] bg-sky-200 text-sky-800 px-2 py-0.5 rounded-full font-bold">ログイン</span>
+                    <span className="text-[10px] bg-sky-200 text-sky-800 px-2 py-0.5 rounded-full font-bold shrink-0">ログイン</span>
                   </div>
-                  <div className="text-xs text-sky-700 mt-0.5">
-                    登録済みの6桁の職員IDを入力してログイン・入力開始します
+                  <div className="text-xs text-sky-700 mt-0.5 truncate">
+                    登録済みの6桁の職員IDを入力して入力開始
                   </div>
                 </div>
               </button>
@@ -229,18 +229,18 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="p-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex items-center gap-3.5 text-left transition-all duration-150 active:scale-98 shadow-sm group mt-1"
+                className="w-full p-4 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex items-center gap-3.5 text-left transition-all duration-150 active:scale-98 shadow-sm group"
               >
-                <div className="p-2 rounded-xl bg-rose-600 text-white shrink-0 group-hover:scale-105 transition-transform">
-                  <ShieldCheck className="w-5 h-5" />
+                <div className="w-11 h-11 rounded-xl bg-rose-600 text-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
-                <div>
-                  <div className="font-extrabold text-xs text-rose-900 flex items-center gap-1.5">
+                <div className="min-w-0 flex-1">
+                  <div className="font-extrabold text-sm text-rose-900 flex items-center gap-1.5">
                     <span>管理者画面へ入る</span>
-                    <span className="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded-full font-bold">管理・分析</span>
+                    <span className="text-[10px] bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full font-bold shrink-0">管理・分析</span>
                   </div>
-                  <div className="text-[11px] text-rose-700 mt-0.5">
-                    パスワードを入力して業務量集計・分析ダッシュボードを表示
+                  <div className="text-xs text-rose-700 mt-0.5 truncate">
+                    パスワードを入力して業務量分析画面を表示
                   </div>
                 </div>
               </button>

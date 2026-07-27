@@ -303,6 +303,30 @@ export function App() {
       ? 'theme-aid'
       : 'theme-nurse';
 
+  // 🟢 管理者認証中モードの場合：管理者画面のみを全画面表示（スタディ画面や一般ヘッダーは一切不要）
+  if (activeTab === 'admin' && isAdminAuthenticated) {
+    return (
+      <div className="app-layout theme-admin min-h-screen bg-rose-50/50">
+        <main className="p-4 md:p-6 max-w-7xl mx-auto">
+          <AdminPanel
+            records={allRecords}
+            tasks={tasks}
+            onAddTask={handleAddTask}
+            onDeleteTask={handleDeleteTask}
+            onClearAllRecords={handleClearAllRecords}
+            onDeleteRecordsByDate={handleDeleteRecordsByDate}
+            onLogout={() => {
+              setIsAdminAuthenticated(false);
+              setActiveTab('input');
+              setShowUserSetupModal(true);
+            }}
+            onGenerateMockData={handleGenerateMockData}
+          />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={`app-layout ${themeClass}`}>
       {/* 共通ヘッダー */}
@@ -331,22 +355,6 @@ export function App() {
             onSaveDraft={handleSaveDraft}
             onSubmit={handleSubmitTimeStudy}
             isDraftSaved={isDraftSaved}
-          />
-        )}
-
-        {activeTab === 'admin' && isAdminAuthenticated && (
-          <AdminPanel
-            records={allRecords}
-            tasks={tasks}
-            onAddTask={handleAddTask}
-            onDeleteTask={handleDeleteTask}
-            onClearAllRecords={handleClearAllRecords}
-            onDeleteRecordsByDate={handleDeleteRecordsByDate}
-            onLogout={() => {
-              setIsAdminAuthenticated(false);
-              setActiveTab('input');
-            }}
-            onGenerateMockData={handleGenerateMockData}
           />
         )}
       </main>
