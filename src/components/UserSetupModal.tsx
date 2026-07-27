@@ -62,7 +62,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
           <div className="setup-icon-badge">
             <User className="w-6 h-6 text-sky-600" />
           </div>
-          <h2>{isInitialSetup ? '看護部 属性設定' : '登録情報・調査日の変更'}</h2>
+          <h2>{isInitialSetup ? 'ユーザー登録' : '登録情報・調査日の変更'}</h2>
           <p className="setup-sub">
             調査を行う個人の職種・属性情報を入力してください。次回以降は保存されます。
           </p>
@@ -71,86 +71,65 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
         <form onSubmit={handleSubmit} className="setup-form">
           {errorMsg && <div className="form-error">{errorMsg}</div>}
 
-          {/* 職種選択 */}
+          {/* 職種選択 (携帯・スマートフォン操作に特化した大型タッチボタン) */}
           <div className="form-group">
             <label className="form-label">
               <Stethoscope className="w-4 h-4 text-sky-600" />
-              <span>職種 <span className="req-badge">必須・選択</span></span>
+              <span>職種 <span className="req-badge">必須</span></span>
             </label>
 
-            {/* ドロップダウン選択（操作確実なフォールバック） */}
-            <select
-              className="form-select font-bold text-sm p-3 border-2 border-sky-200 rounded-xl bg-sky-50/50 mb-2"
-              value={role}
-              onChange={(e) => setRole(e.target.value as JobRole)}
-            >
-              <option value="看護師">🩺 看護師 (病棟・外来・ICU等)</option>
-              <option value="看護補助者">🤝 看護補助者 (ケア補助・環境整備等)</option>
-            </select>
-
-            {/* 直感的にタップ・クリックできるハイライト表示付きラジオカード */}
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              <label
-                className={`p-4 rounded-2xl cursor-pointer flex flex-col justify-between transition-all duration-200 ${
+            <div className="grid grid-cols-2 gap-3 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setRole('看護師')}
+                className={`w-full min-h-[72px] p-3.5 rounded-2xl border-4 text-left transition-all duration-150 active:scale-95 flex flex-col justify-between select-none ${
                   role === '看護師'
-                    ? 'border-4 border-sky-600 bg-sky-100/90 text-sky-950 shadow-xl ring-4 ring-sky-300/50 scale-[1.03] z-10'
-                    : 'border-2 border-slate-200 bg-slate-50/80 text-slate-500 hover:bg-white hover:border-slate-300 opacity-70 hover:opacity-100'
+                    ? 'border-sky-600 bg-sky-100/90 text-sky-950 shadow-xl ring-4 ring-sky-300/50 scale-[1.02]'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="jobRoleRadioGroup"
-                      value="看護師"
-                      checked={role === '看護師'}
-                      onChange={() => setRole('看護師')}
-                      className="w-5 h-5 text-sky-600 accent-sky-600 cursor-pointer"
-                    />
-                    <span className="font-extrabold text-base">🩺 看護師</span>
-                  </div>
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-extrabold text-base flex items-center gap-1.5">
+                    <Stethoscope className="w-5 h-5 text-sky-600" />
+                    看護師
+                  </span>
                   {role === '看護師' && (
-                    <span className="text-[10px] font-extrabold bg-sky-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                    <span className="text-[10px] font-extrabold bg-sky-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
                       <CheckCircle2 className="w-3 h-3" />
                       選択中
                     </span>
                   )}
                 </div>
-                <p className="text-xs mt-2.5 text-slate-600 font-medium leading-tight">
-                  バイタル測定・処置・点滴・服薬管理・カルテ入力など
+                <p className="text-[11px] text-slate-500 font-medium mt-1 leading-tight">
+                  処置・バイタル・カルテ等
                 </p>
-              </label>
+              </button>
 
-              <label
-                className={`p-4 rounded-2xl cursor-pointer flex flex-col justify-between transition-all duration-200 ${
+              <button
+                type="button"
+                onClick={() => setRole('看護補助者')}
+                className={`w-full min-h-[72px] p-3.5 rounded-2xl border-4 text-left transition-all duration-150 active:scale-95 flex flex-col justify-between select-none ${
                   role === '看護補助者'
-                    ? 'border-4 border-emerald-600 bg-emerald-100/90 text-emerald-950 shadow-xl ring-4 ring-emerald-300/50 scale-[1.03] z-10'
-                    : 'border-2 border-slate-200 bg-slate-50/80 text-slate-500 hover:bg-white hover:border-slate-300 opacity-70 hover:opacity-100'
+                    ? 'border-emerald-600 bg-emerald-100/90 text-emerald-950 shadow-xl ring-4 ring-emerald-300/50 scale-[1.02]'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="jobRoleRadioGroup"
-                      value="看護補助者"
-                      checked={role === '看護補助者'}
-                      onChange={() => setRole('看護補助者')}
-                      className="w-5 h-5 text-emerald-600 accent-emerald-600 cursor-pointer"
-                    />
-                    <span className="font-extrabold text-base">🤝 看護補助者</span>
-                  </div>
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-extrabold text-base flex items-center gap-1.5">
+                    <HeartHandshake className="w-5 h-5 text-emerald-600" />
+                    看護補助者
+                  </span>
                   {role === '看護補助者' && (
-                    <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                    <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
                       <CheckCircle2 className="w-3 h-3" />
                       選択中
                     </span>
                   )}
                 </div>
-                <p className="text-xs mt-2.5 text-slate-600 font-medium leading-tight">
-                  体位変換・清拭介助・排泄補助・環境整備・リネン管理など
+                <p className="text-[11px] text-slate-500 font-medium mt-1 leading-tight">
+                  環境整備・ケア補助等
                 </p>
-              </label>
+              </button>
             </div>
           </div>
 

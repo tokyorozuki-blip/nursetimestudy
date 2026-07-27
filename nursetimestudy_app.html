@@ -345,7 +345,7 @@
                     onClick={() => setShowUserSetupModal(true)}
                     className="bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold"
                   >
-                    ユーザー属性設定
+                    ユーザー登録
                   </button>
                 )}
 
@@ -737,84 +737,61 @@
       return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b pb-2">看護部 属性情報設定</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b pb-2">ユーザー登録</h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* 職種選択 */}
+              {/* 職種選択 (スマートフォン・携帯操作に特化した大型タッチボタン) */}
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">職種選択 (必須)</label>
-                
-                {/* 確実なフォールバック用ドロップダウン */}
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full p-3 border-2 border-sky-200 rounded-xl bg-sky-50/50 font-bold text-sm text-slate-800 mb-2"
-                >
-                  <option value="看護師">🩺 看護師 (病棟・外来・ICU等)</option>
-                  <option value="看護補助者">🤝 看護補助者 (ケア補助・環境整備等)</option>
-                </select>
 
-                {/* 直感的なラジオボタンカード */}
                 <div className="grid grid-cols-2 gap-3 mt-1.5">
-                  <label
-                    className={`p-4 rounded-2xl cursor-pointer flex flex-col justify-between transition-all duration-200 ${
+                  <button
+                    type="button"
+                    onClick={() => setRole('看護師')}
+                    className={`w-full min-h-[72px] p-3.5 rounded-2xl border-4 text-left transition-all duration-150 active:scale-95 flex flex-col justify-between select-none ${
                       role === '看護師'
-                        ? 'border-4 border-sky-600 bg-sky-100/90 text-sky-950 shadow-xl ring-4 ring-sky-300/50 scale-[1.03] z-10'
-                        : 'border-2 border-slate-200 bg-slate-50/80 text-slate-500 hover:bg-white hover:border-slate-300 opacity-70 hover:opacity-100'
+                        ? 'border-sky-600 bg-sky-100/90 text-sky-950 shadow-xl ring-4 ring-sky-300/50 scale-[1.02]'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="appJobRoleRadio"
-                          value="看護師"
-                          checked={role === '看護師'}
-                          onChange={() => setRole('看護師')}
-                          className="w-5 h-5 text-sky-600 accent-sky-600 cursor-pointer"
-                        />
-                        <span className="font-extrabold text-base">🩺 看護師</span>
-                      </div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-extrabold text-base flex items-center gap-1.5">
+                        🩺 看護師
+                      </span>
                       {role === '看護師' && (
-                        <span className="text-[10px] font-extrabold bg-sky-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                        <span className="text-[10px] font-extrabold bg-sky-600 text-white px-2 py-0.5 rounded-full shadow">
                           ✓ 選択中
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-2 text-slate-600 font-medium">
-                      処置・バイタル・点滴・カルテ入力など
+                    <p className="text-[11px] text-slate-500 font-medium mt-1 leading-tight">
+                      処置・バイタル・カルテ等
                     </p>
-                  </label>
+                  </button>
 
-                  <label
-                    className={`p-4 rounded-2xl cursor-pointer flex flex-col justify-between transition-all duration-200 ${
+                  <button
+                    type="button"
+                    onClick={() => setRole('看護補助者')}
+                    className={`w-full min-h-[72px] p-3.5 rounded-2xl border-4 text-left transition-all duration-150 active:scale-95 flex flex-col justify-between select-none ${
                       role === '看護補助者'
-                        ? 'border-4 border-emerald-600 bg-emerald-100/90 text-emerald-950 shadow-xl ring-4 ring-emerald-300/50 scale-[1.03] z-10'
-                        : 'border-2 border-slate-200 bg-slate-50/80 text-slate-500 hover:bg-white hover:border-slate-300 opacity-70 hover:opacity-100'
+                        ? 'border-emerald-600 bg-emerald-100/90 text-emerald-950 shadow-xl ring-4 ring-emerald-300/50 scale-[1.02]'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="appJobRoleRadio"
-                          value="看護補助者"
-                          checked={role === '看護補助者'}
-                          onChange={() => setRole('看護補助者')}
-                          className="w-5 h-5 text-emerald-600 accent-emerald-600 cursor-pointer"
-                        />
-                        <span className="font-extrabold text-base">🤝 看護補助者</span>
-                      </div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-extrabold text-base flex items-center gap-1.5">
+                        🤝 看護補助者
+                      </span>
                       {role === '看護補助者' && (
-                        <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                        <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow">
                           ✓ 選択中
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-2 text-slate-600 font-medium">
-                      体位変換・清拭介助・環境整備・補充など
+                    <p className="text-[11px] text-slate-500 font-medium mt-1 leading-tight">
+                      環境整備・ケア補助等
                     </p>
-                  </label>
+                  </button>
                 </div>
               </div>
 
