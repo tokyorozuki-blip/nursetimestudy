@@ -1,9 +1,45 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Vercel KV または メモリ/ストレージ蓄積用のインメモリ・KVストレージ対応ハンドラー
-// Vercel KV 環境変数 (KV_REST_API_URL, KV_REST_API_TOKEN) が設定されていれば自動的に Vercel KV クラウドDBに永続化されます。
+function getKvCredentials() {
+  const url =
+    process.env.KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.VERCEL_KV_REST_API_URL ||
+    process.env.REDIS_REST_API_URL;
+
+  const token =
+    process.env.KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.VERCEL_KV_REST_API_TOKEN ||
+    process.env.REDIS_REST_API_TOKEN;
+
+  return { url, token };
+}
+
+function recursivelyParseRecords(data: any): any[] {
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    let result: any[] = [];
+    for (const item of data) {
+      result = result.concat(recursivelyParseRecords(item));
+    }
+    return result;
+  }
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      return recursivelyParseRecords(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (typeof data === 'object' && data.id && data.user) {
+    return [data];
+  }
+  return [];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORSヘッダーの設定
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -23,30 +59,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const record = req.body;
-
-    if (!record || !record.id || !record.user) {
-      return res.status(400).json({ error: '無効な提出データフォーマットです' });
+    if (!record || !record.id) {
+      return res.status(400).json({ error: '無効なデータ形式です' });
     }
 
-    const kvUrl = process.env.KV_REST_API_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN;
+    const { url: kvUrl, token: kvToken } = getKvCredentials();
 
     if (kvUrl && kvToken) {
-      // Vercel KV クラウドデータベースへ永続書き込み
       const getRes = await fetch(`${kvUrl}/get/nurse_submitted_records`, {
         headers: { Authorization: `Bearer ${kvToken}` },
       });
       const getJson = await getRes.json();
-      let records = [];
-      if (getJson.result) {
-        try {
-          records = typeof getJson.result === 'string' ? JSON.parse(getJson.result) : getJson.result;
-        } catch {
-          records = [];
-        }
+      let records: any[] = [];
+      if (getJson && getJson.result) {
+        records = recursivelyParseRecords(getJson.result);
       }
 
-      records.unshift(record);
+      // 重複チェック（IDまたは同一ユーザー同一日同一時間）
+      const existsIndex = records.findIndex((r: any) => r.id === record.id);
+      if (existsIndex >= 0) {
+        records[existsIndex] = record;
+      } else {
+        records.unshift(record);
+      }
 
       await fetch(`${kvUrl}/set/nurse_submitted_records`, {
         method: 'POST',
@@ -58,9 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    return res.status(200).json({ success: true, message: 'Vercelクラウドへ提出データを蓄積しました', recordId: record.id });
+    return res.status(200).json({ success: true, recordId: record.id });
   } catch (error: any) {
-    console.error('Vercel submit error:', error);
-    return res.status(500).json({ error: error.message || 'データ蓄積エラーが発生しました' });
+    return res.status(500).json({ error: error.message });
   }
 }

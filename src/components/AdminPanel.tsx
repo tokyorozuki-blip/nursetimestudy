@@ -46,6 +46,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onRefreshRecords,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'progress' | 'master' | 'data'>('dashboard');
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // 新規定型業務
   const [newTaskName, setNewTaskName] = useState('');
@@ -145,11 +146,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="flex items-center gap-2">
           {onRefreshRecords && (
             <button
-              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95 shrink-0 cursor-pointer"
-              onClick={onRefreshRecords}
+              type="button"
+              disabled={isSyncing}
+              className={`px-3.5 py-2 text-white rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95 shrink-0 cursor-pointer ${
+                isSyncing ? 'bg-sky-400 opacity-80 cursor-wait' : 'bg-sky-600 hover:bg-sky-700'
+              }`}
+              onClick={async () => {
+                setIsSyncing(true);
+                try {
+                  await onRefreshRecords();
+                  // ★ 同期完了時に自動でダッシュボードタブへ切り替えてリアルタイム表示更新！
+                  setActiveSubTab('dashboard');
+                } finally {
+                  setTimeout(() => setIsSyncing(false), 400);
+                }
+              }}
               title="Vercelクラウドから他端末の最新提出データを即時読み込み"
             >
-              <span>🔄 最新提出データをクラウドから同期</span>
+              <span className={isSyncing ? 'animate-spin inline-block' : ''}>🔄</span>
+              <span>{isSyncing ? 'クラウド同期中...' : '最新提出データをクラウドから同期'}</span>
             </button>
           )}
 

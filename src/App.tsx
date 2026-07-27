@@ -141,6 +141,8 @@ export function App() {
   // 管理画面ナビゲーション
   const handleOpenAdminTab = () => {
     if (isAdminAuthenticated) {
+      // 開いた瞬間に全端末最新データを自動同期！
+      fetchSubmittedRecordsFromVercel().then((updated) => setAllRecords(updated));
       setActiveTab('admin');
       setShowUserSetupModal(false);
     } else {
@@ -150,6 +152,8 @@ export function App() {
 
   // パスワード認証成功時 (okasaikango)
   const handleAdminAuthSuccess = () => {
+    // 認証成功した瞬間に全端末最新データを自動同期！
+    fetchSubmittedRecordsFromVercel().then((updated) => setAllRecords(updated));
     setIsAdminAuthenticated(true);
     setShowAdminAuthModal(false);
     setShowUserSetupModal(false);
@@ -371,17 +375,16 @@ export function App() {
             }}
             onGenerateMockData={handleGenerateMockData}
             onOpenEditMaster={() => setShowTaskMasterModal(true)}
-            onRefreshRecords={() => {
-              fetchSubmittedRecordsFromVercel()
-                .then((updated) => {
-                  const safeList = Array.isArray(updated) ? updated : [];
-                  setAllRecords(safeList);
-                  alert(`Vercelクラウドから最新データを同期しました。（全 ${safeList.length} 件）`);
-                })
-                .catch((err) => {
-                  console.error('Cloud sync error:', err);
-                  alert('クラウド同期中に問題が発生しましたが、ローカルデータで安全に復旧しました。');
-                });
+            onRefreshRecords={async () => {
+              try {
+                const updated = await fetchSubmittedRecordsFromVercel();
+                const safeList = Array.isArray(updated) ? updated : [];
+                setAllRecords(safeList);
+                alert(`Vercelクラウドから最新データを同期しました！（全 ${safeList.length} 件）`);
+              } catch (err: any) {
+                console.error('Cloud sync error:', err);
+                alert(`クラウド同期中にエラーが発生しました: ${err?.message || err}`);
+              }
             }}
           />
         </main>

@@ -1,5 +1,45 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+function getKvCredentials() {
+  const url =
+    process.env.KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.VERCEL_KV_REST_API_URL ||
+    process.env.REDIS_REST_API_URL;
+
+  const token =
+    process.env.KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.VERCEL_KV_REST_API_TOKEN ||
+    process.env.REDIS_REST_API_TOKEN;
+
+  return { url, token };
+}
+
+// 二重エスケープ・配列ネストを再帰解凍するヘルパー
+function recursivelyParseRecords(data: any): any[] {
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    let result: any[] = [];
+    for (const item of data) {
+      result = result.concat(recursivelyParseRecords(item));
+    }
+    return result;
+  }
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      return recursivelyParseRecords(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (typeof data === 'object' && data.id && data.user) {
+    return [data];
+  }
+  return [];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,10 +54,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
+  const { url: kvUrl, token: kvToken } = getKvCredentials();
 
-  // GET: 全蓄積データの取得
   if (req.method === 'GET') {
     try {
       if (kvUrl && kvToken) {
@@ -25,19 +63,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           headers: { Authorization: `Bearer ${kvToken}` },
         });
         const getJson = await getRes.json();
-        if (getJson.result) {
-          const records = typeof getJson.result === 'string' ? JSON.parse(getJson.result) : getJson.result;
-          return res.status(200).json(records);
+        if (getJson && getJson.result) {
+          const cleanRecords = recursivelyParseRecords(getJson.result);
+          return res.status(200).json(cleanRecords);
         }
       }
       return res.status(200).json([]);
     } catch (error: any) {
-      console.error('Vercel fetch records error:', error);
-      return res.status(500).json({ error: error.message || 'データ取得エラー' });
+      return res.status(500).json({ error: error.message });
     }
   }
 
-  // DELETE: 全蓄積データまたは指定日の削除 (管理者用)
   if (req.method === 'DELETE') {
     try {
       const { targetDate } = req.query;
@@ -48,10 +84,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
           const getJson = await getRes.json();
           let records = [];
-          if (getJson.result) {
-            records = typeof getJson.result === 'string' ? JSON.parse(getJson.result) : getJson.result;
+          if (getJson && getJson.result) {
+            records = recursivelyParseRecords(getJson.result);
           }
-          const filtered = records.filter((r: any) => r.user.targetDate !== targetDate);
+          const filtered = records.filter((r: any) => r.user?.targetDate !== targetDate);
           await fetch(`${kvUrl}/set/nurse_submitted_records`, {
             method: 'POST',
             headers: {
@@ -61,14 +97,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             body: JSON.stringify([JSON.stringify(filtered)]),
           });
         } else {
-          // 全件クリア
           await fetch(`${kvUrl}/del/nurse_submitted_records`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${kvToken}` },
           });
         }
       }
-      return res.status(200).json({ success: true, message: '削除処理が完了しました' });
+      return res.status(200).json({ success: true });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }

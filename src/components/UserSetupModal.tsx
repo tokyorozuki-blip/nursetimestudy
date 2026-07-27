@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Department, AgeGroup, JobRole, ShiftType } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
-import { findUserByStaffId, fetchUsersFromVercel } from '../utils/storage';
+import { findUserByStaffId, fetchUsersFromVercel, deleteUserProfileByStaffId } from '../utils/storage';
 import {
   User,
   Building2,
@@ -229,6 +229,10 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
   };
 
   const handleConfirmDelete = () => {
+    const targetId = editStaffId || staffId;
+    if (targetId) {
+      deleteUserProfileByStaffId(targetId);
+    }
     if (onDeleteProfile) {
       onDeleteProfile();
     }

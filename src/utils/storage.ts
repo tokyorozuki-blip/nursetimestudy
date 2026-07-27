@@ -118,6 +118,33 @@ export async function saveUserToVercel(user: UserProfile): Promise<boolean> {
     console.log('Vercel save user status:', err);
     return false;
   }
+/** VercelクラウドDBからユーザー登録を完全削除 */
+export async function deleteUserFromVercel(staffId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/users?staffId=${encodeURIComponent(staffId)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (err) {
+    console.log('Vercel delete user status:', err);
+    return false;
+  }
+}
+
+// 指定職員IDの登録削除（ローカル ＆ Vercelクラウド完全抹消）
+export function deleteUserProfileByStaffId(staffId: string): void {
+  const users = getAllRegisteredUsers();
+  const filtered = users.filter((u) => u.staffId !== staffId);
+  safeSetItem(USERS_DB_KEY, JSON.stringify(filtered));
+
+  const currentUser = getUserProfile();
+  if (currentUser && currentUser.staffId === staffId) {
+    safeRemoveItem(USER_KEY);
+    safeRemoveItem(SLOTS_KEY);
+  }
+
+  // Vercel クラウドDBからも登録プロファイルを即時完全消去
+  deleteUserFromVercel(staffId);
 }
 
 // カレントログインユーザーの取得
@@ -194,29 +221,53 @@ export function normalizeTimeStudyRecord(r: any): TimeStudyRecord | null {
   };
 }
 
+/** 二重・三重ネスト文字列化されたクラウドデータを再帰的に解凍・抽出する安全関数 */
+function deepExtractRecords(raw: any): any[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    let list: any[] = [];
+    for (const item of raw) {
+      list = list.concat(deepExtractRecords(item));
+    }
+    return list;
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return deepExtractRecords(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (typeof raw === 'object' && raw !== null && (raw.id || raw.user)) {
+    return [raw];
+  }
+  return [];
+}
+
 /** Vercelクラウドから全提出データを非同期フェッチしてローカルへ自動同期 */
 export async function fetchSubmittedRecordsFromVercel(): Promise<TimeStudyRecord[]> {
   const localRecords = getAllSubmittedRecords();
   try {
     const res = await fetch('/api/records');
     if (res.ok) {
-      const cloudRecords = await res.json();
-      if (Array.isArray(cloudRecords)) {
-        const validCloudRecords = cloudRecords
-          .map((r: any) => normalizeTimeStudyRecord(r))
-          .filter((r): r is TimeStudyRecord => r !== null);
+      const cloudData = await res.json();
+      const extractedList = deepExtractRecords(cloudData);
+      
+      const validCloudRecords = extractedList
+        .map((r: any) => normalizeTimeStudyRecord(r))
+        .filter((r): r is TimeStudyRecord => r !== null);
 
-        const recordMap = new Map<string, TimeStudyRecord>();
-        localRecords.forEach((r) => {
-          const norm = normalizeTimeStudyRecord(r);
-          if (norm) recordMap.set(norm.id, norm);
-        });
-        validCloudRecords.forEach((r) => recordMap.set(r.id, r));
+      const recordMap = new Map<string, TimeStudyRecord>();
+      localRecords.forEach((r) => {
+        const norm = normalizeTimeStudyRecord(r);
+        if (norm) recordMap.set(norm.id, norm);
+      });
+      validCloudRecords.forEach((r) => recordMap.set(r.id, r));
 
-        const merged = Array.from(recordMap.values());
-        safeSetItem(RECORDS_KEY, JSON.stringify(merged));
-        return merged;
-      }
+      const merged = Array.from(recordMap.values());
+      safeSetItem(RECORDS_KEY, JSON.stringify(merged));
+      return merged;
     }
   } catch (err) {
     console.log('Vercel API sync (fetch) status:', err);
