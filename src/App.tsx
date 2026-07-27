@@ -372,10 +372,16 @@ export function App() {
             onGenerateMockData={handleGenerateMockData}
             onOpenEditMaster={() => setShowTaskMasterModal(true)}
             onRefreshRecords={() => {
-              fetchSubmittedRecordsFromVercel().then((updated) => {
-                setAllRecords(updated);
-                alert(`Vercelクラウドから最新データを同期しました。（全 ${updated.length} 件）`);
-              });
+              fetchSubmittedRecordsFromVercel()
+                .then((updated) => {
+                  const safeList = Array.isArray(updated) ? updated : [];
+                  setAllRecords(safeList);
+                  alert(`Vercelクラウドから最新データを同期しました。（全 ${safeList.length} 件）`);
+                })
+                .catch((err) => {
+                  console.error('Cloud sync error:', err);
+                  alert('クラウド同期中に問題が発生しましたが、ローカルデータで安全に復旧しました。');
+                });
             }}
           />
         </main>

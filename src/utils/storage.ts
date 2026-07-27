@@ -167,7 +167,31 @@ export function getCustomTasks(): TaskItem[] | null {
 // 全レコード（提出済み）の保存・取得（ローカル ＆ Vercelクラウド同期）
 export function getAllSubmittedRecords(): TimeStudyRecord[] {
   const records = safeParse<TimeStudyRecord[]>(RECORDS_KEY, []);
-  return Array.isArray(records) ? records : [];
+  if (!Array.isArray(records)) return [];
+  return records
+    .map((r) => normalizeTimeStudyRecord(r))
+    .filter((r): r is TimeStudyRecord => r !== null);
+}
+
+/** レコードデータの完全安全ガード（不整合データでの白画面クラッシュを防止） */
+export function normalizeTimeStudyRecord(r: any): TimeStudyRecord | null {
+  if (!r || typeof r !== 'object') return null;
+  const user = r.user || {};
+  return {
+    id: String(r.id || `rec-${Date.now()}`),
+    user: {
+      staffId: String(user.staffId || '000000'),
+      name: String(user.name || '名前未設定'),
+      role: user.role === '看護補助者' ? '看護補助者' : '看護師',
+      department: user.department || 'ICU',
+      ageGroup: user.ageGroup || '30〜34歳',
+      targetDate: String(user.targetDate || new Date().toISOString().split('T')[0]),
+      deviceId: user.deviceId || '',
+    },
+    slots: Array.isArray(r.slots) ? r.slots : [],
+    totalFilledSlots: typeof r.totalFilledSlots === 'number' ? r.totalFilledSlots : (Array.isArray(r.slots) ? r.slots.length : 0),
+    submittedAt: String(r.submittedAt || new Date().toISOString()),
+  };
 }
 
 /** Vercelクラウドから全提出データを非同期フェッチしてローカルへ自動同期 */
@@ -177,11 +201,18 @@ export async function fetchSubmittedRecordsFromVercel(): Promise<TimeStudyRecord
     const res = await fetch('/api/records');
     if (res.ok) {
       const cloudRecords = await res.json();
-      if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
-        // 重複を除外してマージ
+      if (Array.isArray(cloudRecords)) {
+        const validCloudRecords = cloudRecords
+          .map((r: any) => normalizeTimeStudyRecord(r))
+          .filter((r): r is TimeStudyRecord => r !== null);
+
         const recordMap = new Map<string, TimeStudyRecord>();
-        localRecords.forEach((r) => recordMap.set(r.id, r));
-        cloudRecords.forEach((r: TimeStudyRecord) => recordMap.set(r.id, r));
+        localRecords.forEach((r) => {
+          const norm = normalizeTimeStudyRecord(r);
+          if (norm) recordMap.set(norm.id, norm);
+        });
+        validCloudRecords.forEach((r) => recordMap.set(r.id, r));
+
         const merged = Array.from(recordMap.values());
         safeSetItem(RECORDS_KEY, JSON.stringify(merged));
         return merged;
