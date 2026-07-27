@@ -147,6 +147,14 @@ export function App() {
     setActiveSlot(null);
   };
 
+  // 時間帯（スロット）の削除処理
+  const handleDeleteSlot = (slotId: string) => {
+    const updated = slots.filter((s) => s.id !== slotId);
+    setSlots(updated);
+    saveDraftSlots(updated);
+    setIsDraftSaved(true);
+  };
+
   // ドラフト保存
   const handleSaveDraft = () => {
     saveDraftSlots(slots);
@@ -266,6 +274,7 @@ export function App() {
             onSlotClick={(slot) => setActiveSlot(slot)}
             onAddEarlySlot={handleAddEarlySlot}
             onAddLateSlot={handleAddLateSlot}
+            onDeleteSlot={handleDeleteSlot}
             onSaveDraft={handleSaveDraft}
             onSubmit={handleSubmitTimeStudy}
             isDraftSaved={isDraftSaved}

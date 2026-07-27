@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 
 interface TimelineProps {
@@ -17,6 +18,7 @@ interface TimelineProps {
   onSlotClick: (slot: TimeSlot) => void;
   onAddEarlySlot: () => void;
   onAddLateSlot: () => void;
+  onDeleteSlot?: (slotId: string) => void;
   onSaveDraft: () => void;
   onSubmit: () => void;
   isDraftSaved: boolean;
@@ -27,6 +29,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSlotClick,
   onAddEarlySlot,
   onAddLateSlot,
+  onDeleteSlot,
   onSaveDraft,
   onSubmit,
   isDraftSaved,
@@ -164,9 +167,26 @@ export const Timeline: React.FC<TimelineProps> = ({
                 )}
               </div>
 
-              {/* 右矢印アイコン */}
-              <div className="slot-arrow">
-                <ChevronRight className="w-5 h-5 text-slate-400" />
+              {/* 右側操作エリア (削除ボタン & 右矢印) */}
+              <div className="slot-action-col">
+                {onDeleteSlot && (
+                  <button
+                    type="button"
+                    className="btn-slot-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`${slot.startTime}〜${slot.endTime} の時間帯枠を削除しますか？`)) {
+                        onDeleteSlot(slot.id);
+                      }
+                    }}
+                    title="この時間帯枠を削除"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <div className="slot-arrow">
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
               </div>
             </div>
           );

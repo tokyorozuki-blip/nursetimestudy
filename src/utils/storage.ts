@@ -4,17 +4,34 @@ const USER_KEY = 'nurse_timestudy_user_profile';
 const SLOTS_KEY = 'nurse_timestudy_draft_slots';
 const RECORDS_KEY = 'nurse_timestudy_all_submitted_records';
 const TASKS_KEY = 'nurse_timestudy_custom_tasks';
+const DEVICE_ID_KEY = 'nurse_timestudy_device_id';
 
-// ユーザー属性の一時保存・取得
+// 端末（ブラウザ）固有IDの取得または新規割り当て
+export function getOrCreateDeviceId(): string {
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    localStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+  return deviceId;
+}
+
+// ユーザー属性の一時保存・取得（端末ごとに独立管理）
 export function saveUserProfile(user: UserProfile): void {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const deviceId = user.deviceId || getOrCreateDeviceId();
+  const updatedUser = { ...user, deviceId };
+  localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
 }
 
 export function getUserProfile(): UserProfile | null {
   const data = localStorage.getItem(USER_KEY);
   if (!data) return null;
   try {
-    return JSON.parse(data);
+    const user = JSON.parse(data) as UserProfile;
+    if (!user.deviceId) {
+      user.deviceId = getOrCreateDeviceId();
+    }
+    return user;
   } catch {
     return null;
   }

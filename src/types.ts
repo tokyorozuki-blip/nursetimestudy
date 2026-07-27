@@ -55,6 +55,7 @@ export interface UserProfile {
   department: Department;
   ageGroup: AgeGroup;
   targetDate: string; // YYYY-MM-DD
+  deviceId?: string;  // 端末固有ID
 }
 
 // 15分タイムスロット

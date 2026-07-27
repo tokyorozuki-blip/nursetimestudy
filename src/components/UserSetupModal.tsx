@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile, Department, AgeGroup, JobRole } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
-import { User, Building2, Calendar, Award, CheckCircle2, Trash2, AlertTriangle, Stethoscope, HeartHandshake } from 'lucide-react';
+import { User, Building2, Calendar, Award, CheckCircle2, Trash2, AlertTriangle, Stethoscope, HeartHandshake, Smartphone } from 'lucide-react';
 
 interface UserSetupModalProps {
   initialUser: UserProfile | null;
@@ -64,8 +64,16 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
           </div>
           <h2>{isInitialSetup ? 'ユーザー登録' : '登録情報・調査日の変更'}</h2>
           <p className="setup-sub">
-            調査を行う個人の職種・属性情報を入力してください。次回以降は保存されます。
+            調査を行う個人の職種・属性情報を入力してください。この端末（ブラウザ）ごとに登録データが独立して保存されます。
           </p>
+          {initialUser?.deviceId && (
+            <div className="mt-2 text-center">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                <Smartphone className="w-3.5 h-3.5 text-sky-600" />
+                この端末の識別ID: <strong>{initialUser.deviceId}</strong>
+              </span>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="setup-form">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { Clock, User, Calendar, Building2, Lock, ShieldCheck, BarChart3, Edit3 } from 'lucide-react';
+import { Clock, User, Calendar, Building2, Lock, ShieldCheck, BarChart3, Edit3, Smartphone } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'input' | 'admin';
@@ -99,8 +99,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {user && activeTab === 'input' && (
         <div className="target-date-bar">
-          <Calendar className="w-4 h-4 text-sky-600" />
-          <span>対象調査日: <strong>{user.targetDate}</strong></span>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-sky-600" />
+            <span>対象調査日: <strong>{user.targetDate}</strong></span>
+          </div>
+          {user.deviceId && (
+            <div className="flex items-center gap-1 text-[11px] text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-full font-medium ml-2">
+              <Smartphone className="w-3 h-3 text-sky-600" />
+              <span>端末管理: {user.deviceId}</span>
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -688,6 +688,30 @@ body {
   border: 1px solid;
 }
 
+.slot-action-col {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-slot-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-slot-delete:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
 .slot-arrow {
   display: flex;
   align-items: center;
