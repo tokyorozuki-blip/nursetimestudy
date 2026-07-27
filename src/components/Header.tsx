@@ -1,6 +1,6 @@
 import React from 'react';
-import { UserProfile } from '../types';
-import { Clock, User, Calendar, Building2, Lock, ShieldCheck, BarChart3, Edit3, Smartphone } from 'lucide-react';
+import { UserProfile, ShiftType } from '../types';
+import { Clock, User, Calendar, Building2, Lock, ShieldCheck, BarChart3, Edit3, Smartphone, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'input' | 'admin';
