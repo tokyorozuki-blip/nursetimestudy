@@ -45,7 +45,7 @@ export interface TaskItem {
   color: string;
   badgeBg: string;
   description: string;
-  targetRole?: JobRole | '共通';
+  targetRole?: JobRole;
 }
 
 // ユーザー情報

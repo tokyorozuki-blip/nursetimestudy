@@ -169,7 +169,7 @@ export const PRESET_TASKS: TaskItem[] = [
     color: '#64748b',
     badgeBg: '#e2e8f0',
     description: '昼休憩、小休憩、その他業務',
-    targetRole: '共通',
+    targetRole: '看護師',
   },
 
   // ==========================================
@@ -277,6 +277,15 @@ export const PRESET_TASKS: TaskItem[] = [
     color: '#475569',
     badgeBg: '#f1f5f9',
     description: 'ナースコール一時対応・看護師への報告、業務サポート',
+    targetRole: '看護補助者',
+  },
+  {
+    id: 'a-o3',
+    name: '休憩・その他',
+    category: 'その他・管理業務',
+    color: '#64748b',
+    badgeBg: '#e2e8f0',
+    description: '昼休憩、小休憩、その他業務',
     targetRole: '看護補助者',
   },
 ];

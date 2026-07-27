@@ -274,11 +274,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <select
                   className="form-select font-bold"
                   value={newTaskTargetRole}
-                  onChange={(e) => setNewTaskTargetRole(e.target.value as JobRole | '共通')}
+                  onChange={(e) => setNewTaskTargetRole(e.target.value as JobRole)}
                 >
                   <option value="看護師">🩺 看護師専用</option>
                   <option value="看護補助者">🤝 看護補助者専用</option>
-                  <option value="共通">🌐 全職種共通</option>
                 </select>
               </div>
 
