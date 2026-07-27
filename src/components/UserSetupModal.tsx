@@ -183,7 +183,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('profile');
                 }}
-                className="w-full max-w-sm h-20 px-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-full h-20 px-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
                 <div className="flex items-center justify-center gap-2 font-extrabold text-base text-emerald-950">
                   <UserPlus className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -201,7 +201,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('id');
                 }}
-                className="w-full max-w-sm h-20 px-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-full h-20 px-4 rounded-2xl border-2 border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
                 <div className="flex items-center justify-center gap-2 font-extrabold text-base text-sky-950">
                   <LogInIcon className="w-5 h-5 text-sky-600 shrink-0" />
@@ -219,7 +219,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-full max-w-sm h-20 px-4 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
+                className="w-full h-20 px-4 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-950 flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer"
               >
                 <div className="flex items-center justify-center gap-2 font-extrabold text-base text-rose-950">
                   <ShieldCheck className="w-5 h-5 text-rose-600 shrink-0" />
