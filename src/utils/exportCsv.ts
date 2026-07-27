@@ -1,10 +1,13 @@
 import { TimeStudyRecord } from '../types';
 import { PRESET_TASKS } from '../constants';
 
-export function exportRecordsToCSV(records: TimeStudyRecord[], filename: string = '看護部タイムスタディ集計データ.csv'): void {
+export async function exportRecordsToCSV(
+  records: TimeStudyRecord[],
+  filename: string = '看護部タイムスタディ集計データ.csv'
+): Promise<boolean> {
   if (!records || records.length === 0) {
     alert('出力対象のデータが存在しません。');
-    return;
+    return false;
   }
 
   const taskMap = new Map(PRESET_TASKS.map((t) => [t.id, t.name]));
@@ -57,6 +60,34 @@ export function exportRecordsToCSV(records: TimeStudyRecord[], filename: string 
     '\n' +
     rows.map((r) => r.join(',')).join('\n');
 
+  // File System Access API (showSaveFilePicker) を利用してエクスプローラーダイアログを起動し保存先を任意選択
+  if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [
+          {
+            description: 'CSV File (*.csv)',
+            accept: {
+              'text/csv': ['.csv'],
+            },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(csvContent);
+      await writable.close();
+      return true;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log('Save file picker cancelled by user');
+        return false;
+      }
+      console.warn('showSaveFilePicker error, falling back to standard download:', err);
+    }
+  }
+
+  // フォールバック (標準ブラウザダウンロード)
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -66,4 +97,5 @@ export function exportRecordsToCSV(records: TimeStudyRecord[], filename: string 
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+  return true;
 }

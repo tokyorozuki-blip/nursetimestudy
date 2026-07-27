@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
-import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole } from '../types';
-import { DEPARTMENTS } from '../constants';
+import React, { useState, useMemo } from 'react';
+import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole, UserProfile, Department, AgeGroup } from '../types';
+import { DEPARTMENTS, AGE_GROUPS } from '../constants';
 import { Dashboard } from './Dashboard';
 import { exportRecordsToCSV } from '../utils/exportCsv';
-import { getDeptTargets, saveDeptTargets, deleteSubmittedRecordsFromVercel } from '../utils/storage';
+import {
+  getDeptTargets,
+  saveDeptTargets,
+  deleteSubmittedRecordsFromVercel,
+  getAllRegisteredUsers,
+  fetchUsersFromVercel,
+  saveUserProfile,
+  saveUserToVercel,
+  deleteUserProfileByStaffId,
+  deleteUserFromVercel,
+} from '../utils/storage';
 import {
   ShieldCheck,
   Building2,
@@ -23,6 +33,9 @@ import {
   Users,
   X,
   Check,
+  Edit,
+  Search,
+  RefreshCw,
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -52,8 +65,91 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onOpenEditMaster,
   onRefreshRecords,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'progress' | 'master' | 'data'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'progress' | 'master' | 'users' | 'data'>('dashboard');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // 登録ユーザー一覧管理ステート
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getAllRegisteredUsers());
+  const [userSearchText, setUserSearchText] = useState<string>('');
+  const [userDeptFilter, setUserDeptFilter] = useState<string>('ALL');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('ALL');
+  const [userIsSyncing, setUserIsSyncing] = useState<boolean>(false);
+
+  // ユーザー編集モーダルステート
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editUserName, setEditUserName] = useState<string>('');
+  const [editUserRole, setEditUserRole] = useState<JobRole>('看護師');
+  const [editUserDept, setEditUserDept] = useState<Department>('ICU');
+  const [editUserAge, setEditUserAge] = useState<AgeGroup>('25〜29歳');
+
+  // ユーザー削除確認モーダルステート
+  const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
+
+  // クラウド＆ローカルから最新の登録ユーザーリストを再取得
+  const refreshRegisteredUsers = async () => {
+    setUserIsSyncing(true);
+    try {
+      const users = await fetchUsersFromVercel();
+      setRegisteredUsers(Array.isArray(users) ? users : []);
+    } catch (err) {
+      console.error('Failed to refresh users:', err);
+    } finally {
+      setUserIsSyncing(false);
+    }
+  };
+
+  // 登録ユーザーの絞り込み一覧
+  const filteredUsersList = useMemo(() => {
+    return registeredUsers.filter((u) => {
+      const matchRole = userRoleFilter === 'ALL' || (u.role || '看護師') === userRoleFilter;
+      const matchDept = userDeptFilter === 'ALL' || u.department === userDeptFilter;
+      const matchSearch =
+        !userSearchText ||
+        (u.name && u.name.toLowerCase().includes(userSearchText.toLowerCase())) ||
+        (u.staffId && u.staffId.includes(userSearchText));
+      return matchRole && matchDept && matchSearch;
+    });
+  }, [registeredUsers, userRoleFilter, userDeptFilter, userSearchText]);
+
+  // 編集ダイアログを開く
+  const handleOpenEditUser = (u: UserProfile) => {
+    setEditingUser(u);
+    setEditUserName(u.name || '');
+    setEditUserRole(u.role || '看護師');
+    setEditUserDept(u.department || 'ICU');
+    setEditUserAge(u.ageGroup || '25〜29歳');
+  };
+
+  // 編集の保存処理
+  const handleSaveEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editUserName.trim()) return;
+
+    const updatedUser: UserProfile = {
+      ...editingUser,
+      name: editUserName.trim(),
+      role: editUserRole,
+      department: editUserDept,
+      ageGroup: editUserAge,
+    };
+
+    saveUserProfile(updatedUser);
+    await saveUserToVercel(updatedUser);
+    setEditingUser(null);
+    await refreshRegisteredUsers();
+    alert(`職員ID: ${updatedUser.staffId} (${updatedUser.name} さん) の登録情報を更新しました。`);
+  };
+
+  // ユーザーの完全削除処理
+  const handleConfirmDeleteUser = async () => {
+    if (!deletingUser) return;
+
+    deleteUserProfileByStaffId(deletingUser.staffId);
+    await deleteUserFromVercel(deletingUser.staffId);
+    setDeletingUser(null);
+    await refreshRegisteredUsers();
+    alert(`職員ID: ${deletingUser.staffId} のユーザー登録情報を完全削除しました。`);
+  };
 
   // 新規定型業務
   const [newTaskName, setNewTaskName] = useState('');
@@ -132,14 +228,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // 日付指定削除対象の件数
   const dateTargetRecordsCount = records.filter((r) => r.user.targetDate === deleteTargetDate).length;
 
-  // 日付指定削除 最終実行
-  const handleFinalDeleteByDate = () => {
+  // 日付指定削除 最終実行 (CSVバックアップ出力選択対応)
+  const handleFinalDeleteByDate = (exportBackup: boolean = true) => {
+    if (exportBackup) {
+      const targetRecs = records.filter((r) => r.user.targetDate === deleteTargetDate);
+      if (targetRecs.length > 0) {
+        exportRecordsToCSV(targetRecs, `看護タイムスタディ_${deleteTargetDate}_削除前バックアップ.csv`);
+      }
+    }
     onDeleteRecordsByDate(deleteTargetDate);
     setDateDeleteStep(0);
   };
 
-  // 全件削除 最終実行
-  const handleFinalDeleteAll = () => {
+  // 全件削除 最終実行 (CSVバックアップ出力選択対応)
+  const handleFinalDeleteAll = (exportBackup: boolean = true) => {
+    if (exportBackup && records.length > 0) {
+      exportRecordsToCSV(records, `全看護師_タイムスタディ一括データ_削除前バックアップ_${todayStr}.csv`);
+    }
     onClearAllRecords();
     setAllDeleteStep(0);
   };
@@ -217,6 +322,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <ListPlus className="w-4 h-4" />
           <span>定型業務マスタ編集</span>
+        </button>
+
+        <button
+          className={`admin-tab ${activeSubTab === 'users' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveSubTab('users');
+            refreshRegisteredUsers();
+          }}
+        >
+          <Users className="w-4 h-4" />
+          <span>ユーザー登録状況・一覧管理</span>
         </button>
 
         <button
@@ -557,7 +673,182 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* 4. データ管理・日付別削除 & 全データ削除 (二重安全確認) */}
+      {/* 4. ユーザー登録状況・一覧管理 (編集・削除機能付き) */}
+      {activeSubTab === 'users' && (
+        <div className="admin-section space-y-4">
+          <div className="section-title-row flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="section-title">登録済み職員・ユーザープロファイル一元管理</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                全端末から登録された職員プロファイルの閲覧・編集・削除が行えます。
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={userIsSyncing}
+              className={`px-3.5 py-2 text-white rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer ${
+                userIsSyncing ? 'bg-sky-400 opacity-80 cursor-wait' : 'bg-sky-600 hover:bg-sky-700'
+              }`}
+              onClick={refreshRegisteredUsers}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${userIsSyncing ? 'animate-spin' : ''}`} />
+              <span>{userIsSyncing ? 'ユーザー情報を同期中...' : '最新ユーザー情報をクラウドから同期'}</span>
+            </button>
+          </div>
+
+          {/* KPIカード（登録者数・看護師数・看護補助者数） */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-sky-50 border border-sky-200 p-3.5 rounded-xl flex items-center justify-between shadow-2xs">
+              <div>
+                <div className="text-xs font-bold text-sky-800">全登録職員数</div>
+                <div className="text-2xl font-black text-sky-900 mt-0.5">{registeredUsers.length} <span className="text-xs font-bold">名</span></div>
+              </div>
+              <Users className="w-8 h-8 text-sky-500 opacity-80" />
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center justify-between shadow-2xs">
+              <div>
+                <div className="text-xs font-bold text-emerald-800">看護師 登録数</div>
+                <div className="text-2xl font-black text-emerald-900 mt-0.5">
+                  {registeredUsers.filter((u) => (u.role || '看護師') === '看護師').length} <span className="text-xs font-bold">名</span>
+                </div>
+              </div>
+              <Stethoscope className="w-8 h-8 text-emerald-500 opacity-80" />
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-center justify-between shadow-2xs">
+              <div>
+                <div className="text-xs font-bold text-amber-800">看護補助者 登録数</div>
+                <div className="text-2xl font-black text-amber-900 mt-0.5">
+                  {registeredUsers.filter((u) => u.role === '看護補助者').length} <span className="text-xs font-bold">名</span>
+                </div>
+              </div>
+              <HeartHandshake className="w-8 h-8 text-amber-500 opacity-80" />
+            </div>
+          </div>
+
+          {/* フィルター＆検索バー */}
+          <div className="filter-bar">
+            <div className="filter-item">
+              <Filter className="w-4 h-4 text-slate-500" />
+              <label>職種絞り込み:</label>
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value)}
+              >
+                <option value="ALL">全職種 (全体)</option>
+                <option value="看護師">看護師</option>
+                <option value="看護補助者">看護補助者</option>
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <Building2 className="w-4 h-4 text-slate-500" />
+              <label>部署絞り込み:</label>
+              <select
+                value={userDeptFilter}
+                onChange={(e) => setUserDeptFilter(e.target.value)}
+              >
+                <option value="ALL">全18部署 (全体)</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item search-item">
+              <Search className="w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="職員ID(6桁)または氏名で検索..."
+                value={userSearchText}
+                onChange={(e) => setUserSearchText(e.target.value)}
+              />
+            </div>
+
+            <div className="filter-count ml-auto">
+              該当件数: <strong>{filteredUsersList.length}</strong> / 全 {registeredUsers.length} 名
+            </div>
+          </div>
+
+          {/* 登録ユーザーテーブル */}
+          <div className="table-card">
+            <div className="table-responsive">
+              <table className="dash-table">
+                <thead>
+                  <tr>
+                    <th>職員ID</th>
+                    <th>氏名</th>
+                    <th>職種</th>
+                    <th>所属部署</th>
+                    <th>年齢階層</th>
+                    <th>端末ID</th>
+                    <th className="text-center">操作 (編集・削除)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsersList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-slate-400 text-xs">
+                        該当する登録ユーザーは見つかりませんでした。
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsersList.map((u) => (
+                      <tr key={u.staffId}>
+                        <td className="font-mono font-bold text-sky-800">{u.staffId}</td>
+                        <td className="font-bold text-slate-900">{u.name} さん</td>
+                        <td>
+                          <span
+                            className={`text-xs px-2.5 py-0.5 rounded font-bold ${
+                              u.role === '看護補助者'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-sky-100 text-sky-800'
+                            }`}
+                          >
+                            {u.role || '看護師'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="dept-tag">{u.department || '未設定'}</span>
+                        </td>
+                        <td className="text-xs text-slate-600">{u.ageGroup || '未設定'}</td>
+                        <td className="text-xs text-slate-400 font-mono">{u.deviceId || '-'}</td>
+                        <td>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              className="px-2.5 py-1 bg-sky-100 hover:bg-sky-200 text-sky-800 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                              onClick={() => handleOpenEditUser(u)}
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>編集</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                              onClick={() => setDeletingUser(u)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>削除</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. データ管理・日付別削除 & 全データ削除 (二重安全確認) */}
       {activeSubTab === 'data' && (
         <div className="admin-section">
           <div className="section-title-row">
@@ -679,20 +970,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* ★ 日付指定削除: 第1段階確認モーダル */}
       {dateDeleteStep === 1 && (
         <div className="modal-overlay">
-          <div className="modal-card">
+          <div className="modal-card max-w-lg">
             <div className="setup-header">
               <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-2" />
-              <h2>【確認: 1/2】日付指定データの削除</h2>
+              <h2>【確認: 1/2】日付指定データの削除とCSVバックアップ確認</h2>
               <p className="setup-sub">
                 対象日: <strong>{deleteTargetDate}</strong> のデータ (計 {dateTargetRecordsCount} 件) を削除します。
+                <br />
+                <strong className="text-slate-800 mt-1 block">削除を行う前に、データのバックアップCSVを出力（ダウンロード）しますか？</strong>
               </p>
             </div>
-            <div className="modal-buttons-flex">
-              <button className="btn-secondary" onClick={() => setDateDeleteStep(0)}>
-                キャンセル
+            <div className="flex flex-col gap-2.5 mt-4">
+              <button
+                type="button"
+                className="py-3 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={async () => {
+                  const targetRecs = records.filter((r) => r.user.targetDate === deleteTargetDate);
+                  if (targetRecs.length > 0) {
+                    const saved = await exportRecordsToCSV(targetRecs, `看護タイムスタディ_${deleteTargetDate}_削除前バックアップ.csv`);
+                    if (!saved) return;
+                  }
+                  setDateDeleteStep(2);
+                }}
+              >
+                <Download className="w-4 h-4" />
+                <span>CSVバックアップを出力して最終確認へ進む (推奨)</span>
               </button>
-              <button className="btn-primary bg-amber-600" onClick={() => setDateDeleteStep(2)}>
-                次へ進む (最終確認)
+
+              <button
+                type="button"
+                className="py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => setDateDeleteStep(2)}
+              >
+                <AlertTriangle className="w-4 h-4" />
+                <span>バックアップなしで最終確認へ進む</span>
+              </button>
+
+              <button type="button" className="btn-secondary py-2.5 text-xs font-semibold" onClick={() => setDateDeleteStep(0)}>
+                キャンセル (削除を中止)
               </button>
             </div>
           </div>
@@ -702,20 +1017,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* ★ 日付指定削除: 第2段階最終決定モーダル */}
       {dateDeleteStep === 2 && (
         <div className="modal-overlay">
-          <div className="modal-card border-red-500 border-2">
+          <div className="modal-card border-red-500 border-2 max-w-lg">
             <div className="setup-header">
               <Trash2 className="w-10 h-10 text-red-600 mx-auto mb-2 animate-bounce" />
               <h2 className="text-red-600">【最終確定: 2/2】本当に削除してよろしいですか？</h2>
               <p className="setup-sub text-red-700 font-bold">
-                {deleteTargetDate} の全 {dateTargetRecordsCount} 件のデータが完全に削除されます。この操作は復元できません！
+                {deleteTargetDate} の全 {dateTargetRecordsCount} 件のデータが削除されます。この操作は復元できません！
               </p>
             </div>
-            <div className="modal-buttons-flex">
-              <button className="btn-secondary" onClick={() => setDateDeleteStep(0)}>
-                中止して戻る
+            <div className="flex flex-col gap-2.5 mt-4">
+              <button
+                type="button"
+                className="py-3 px-4 bg-sky-700 hover:bg-sky-800 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => handleFinalDeleteByDate(true)}
+              >
+                <Download className="w-4 h-4" />
+                <span>【CSVバックアップ出力 ＆ 実行】{deleteTargetDate} のデータを削除</span>
               </button>
-              <button className="btn-danger font-bold" onClick={handleFinalDeleteByDate}>
-                【実行】{deleteTargetDate} のデータを完全削除
+
+              <button
+                type="button"
+                className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => handleFinalDeleteByDate(false)}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>【バックアップ出力なしで実行】{deleteTargetDate} のデータを完全削除</span>
+              </button>
+
+              <button type="button" className="btn-secondary py-2.5 text-xs font-semibold" onClick={() => setDateDeleteStep(0)}>
+                中止して戻る
               </button>
             </div>
           </div>
@@ -725,20 +1055,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* ★ 全データ一括削除: 第1段階確認モーダル */}
       {allDeleteStep === 1 && (
         <div className="modal-overlay">
-          <div className="modal-card">
+          <div className="modal-card max-w-lg">
             <div className="setup-header">
               <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-2" />
-              <h2>【確認: 1/2】すべてのデータの完全消去</h2>
+              <h2>【確認: 1/2】すべてのデータの完全消去とCSVバックアップ確認</h2>
               <p className="setup-sub">
-                システム内に保存されているすべてのタイムスタディ提出データ (計 {records.length} 件) をリセット・削除します。
+                全提出データ (計 {records.length} 件) をリセット・完全削除します。
+                <br />
+                <strong className="text-slate-800 mt-1 block">削除を行う前に、全データのバックアップCSVを出力（ダウンロード）しますか？</strong>
               </p>
             </div>
-            <div className="modal-buttons-flex">
-              <button className="btn-secondary" onClick={() => setAllDeleteStep(0)}>
-                キャンセル
+            <div className="flex flex-col gap-2.5 mt-4">
+              <button
+                type="button"
+                className="py-3 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={async () => {
+                  if (records.length > 0) {
+                    const saved = await exportRecordsToCSV(records, `全看護師_タイムスタディ一括データ_削除前バックアップ_${todayStr}.csv`);
+                    if (!saved) return;
+                  }
+                  setAllDeleteStep(2);
+                }}
+              >
+                <Download className="w-4 h-4" />
+                <span>全件バックアップCSVを出力して最終確認へ進む (推奨)</span>
               </button>
-              <button className="btn-danger" onClick={() => setAllDeleteStep(2)}>
-                次へ進む (最終確認へ)
+
+              <button
+                type="button"
+                className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => setAllDeleteStep(2)}
+              >
+                <AlertTriangle className="w-4 h-4" />
+                <span>バックアップなしで最終確認へ進む</span>
+              </button>
+
+              <button type="button" className="btn-secondary py-2.5 text-xs font-semibold" onClick={() => setAllDeleteStep(0)}>
+                キャンセル (削除を中止)
               </button>
             </div>
           </div>
@@ -748,20 +1101,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* ★ 全データ一括削除: 第2段階最終決定モーダル */}
       {allDeleteStep === 2 && (
         <div className="modal-overlay">
-          <div className="modal-card border-red-600 border-2">
+          <div className="modal-card border-red-600 border-2 max-w-lg">
             <div className="setup-header">
               <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-2 animate-pulse" />
               <h2 className="text-red-600">【最終危険警告: 2/2】本当にすべてのデータを削除しますか？</h2>
               <p className="setup-sub text-red-800 font-bold">
-                600名規模の全データベースが完全に消去されます。元に戻すことは一切できません。
+                全 {records.length} 件のデータが完全消去されます。この操作は復元できません！
               </p>
             </div>
-            <div className="modal-buttons-flex">
-              <button className="btn-secondary" onClick={() => setAllDeleteStep(0)}>
-                中止して保護する
+            <div className="flex flex-col gap-2.5 mt-4">
+              <button
+                type="button"
+                className="py-3 px-4 bg-sky-700 hover:bg-sky-800 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => handleFinalDeleteAll(true)}
+              >
+                <Download className="w-4 h-4" />
+                <span>【全件CSVバックアップ出力 ＆ 実行】全データを削除</span>
               </button>
-              <button className="btn-danger font-bold bg-red-700" onClick={handleFinalDeleteAll}>
-                【完全実行】すべての調査データを即座に削除する
+
+              <button
+                type="button"
+                className="py-3 px-4 bg-red-700 hover:bg-red-800 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => handleFinalDeleteAll(false)}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>【バックアップ出力なしで実行】全データを即座に完全消去</span>
+              </button>
+
+              <button type="button" className="btn-secondary py-2.5 text-xs font-semibold" onClick={() => setAllDeleteStep(0)}>
+                中止して保護する
               </button>
             </div>
           </div>
@@ -840,6 +1208,127 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 }}
               >
                 {cloudIsDeleting ? 'クラウド削除を実行中...' : '【実行】クラウドDB上のデータを完全削除する'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✏️ ユーザー編集モーダル */}
+      {editingUser && (
+        <div className="modal-overlay">
+          <div className="modal-card max-w-md p-5 bg-white rounded-xl shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Edit className="w-5 h-5 text-sky-600" />
+                登録ユーザー情報の編集・更新
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditUser} className="space-y-4 my-3">
+              <div className="bg-sky-50 border border-sky-200 p-2.5 rounded-lg text-xs flex items-center justify-between">
+                <span className="text-slate-600 font-bold">対象職員ID (変更不可)</span>
+                <strong className="font-mono text-sm text-sky-800 font-bold">{editingUser.staffId}</strong>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label text-xs font-bold">氏名</label>
+                <input
+                  type="text"
+                  className="form-input text-sm"
+                  value={editUserName}
+                  onChange={(e) => setEditUserName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label text-xs font-bold">職種</label>
+                <select
+                  className="form-select text-sm font-bold"
+                  value={editUserRole}
+                  onChange={(e) => setEditUserRole(e.target.value as JobRole)}
+                >
+                  <option value="看護師">看護師</option>
+                  <option value="看護補助者">看護補助者</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label text-xs font-bold">所属部署</label>
+                <select
+                  className="form-select text-sm"
+                  value={editUserDept}
+                  onChange={(e) => setEditUserDept(e.target.value as Department)}
+                >
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label text-xs font-bold">年齢階層</label>
+                <select
+                  className="form-select text-sm"
+                  value={editUserAge}
+                  onChange={(e) => setEditUserAge(e.target.value as AgeGroup)}
+                >
+                  {AGE_GROUPS.map((age) => (
+                    <option key={age} value={age}>
+                      {age}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  onClick={() => setEditingUser(null)}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg flex items-center gap-1 shadow-sm cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  変更内容を保存
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🗑️ ユーザー削除確認モーダル */}
+      {deletingUser && (
+        <div className="modal-overlay">
+          <div className="modal-card border-rose-500 border-2 max-w-md p-5 bg-white rounded-xl shadow-2xl">
+            <div className="setup-header text-center">
+              <AlertTriangle className="w-10 h-10 text-rose-600 mx-auto mb-2 animate-bounce" />
+              <h2 className="text-rose-600 text-lg font-bold">ユーザープロファイルの完全削除</h2>
+              <p className="setup-sub text-slate-700 text-xs mt-2">
+                職員ID: <strong className="font-mono text-rose-800 text-sm">{deletingUser.staffId}</strong> (氏名: <strong>{deletingUser.name}</strong> さん) のユーザー登録情報をクラウドDBおよびシステムから完全に削除します。この操作は復元できません。
+              </p>
+            </div>
+            <div className="modal-buttons-flex mt-4 flex items-center justify-end gap-2">
+              <button className="btn-secondary" onClick={() => setDeletingUser(null)}>
+                キャンセル
+              </button>
+              <button className="btn-danger font-bold bg-rose-600 hover:bg-rose-700" onClick={handleConfirmDeleteUser}>
+                【実行】このユーザー登録を完全削除
               </button>
             </div>
           </div>
