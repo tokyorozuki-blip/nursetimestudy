@@ -126,6 +126,7 @@ export function App() {
   const handleOpenAdminTab = () => {
     if (isAdminAuthenticated) {
       setActiveTab('admin');
+      setShowUserSetupModal(false);
     } else {
       setShowAdminAuthModal(true);
     }
@@ -135,6 +136,7 @@ export function App() {
   const handleAdminAuthSuccess = () => {
     setIsAdminAuthenticated(true);
     setShowAdminAuthModal(false);
+    setShowUserSetupModal(false);
     setActiveTab('admin');
   };
 
@@ -358,7 +360,7 @@ export function App() {
           initialCustomStart={customStartTime}
           initialCustomEnd={customEndTime}
           onSave={handleSaveUser}
-          onOpenAdmin={handleOpenAdminTab}
+          onOpenAdmin={handleAdminAuthSuccess}
           onDeleteProfile={handleDeleteUserProfile}
           isInitialSetup={!user}
         />
