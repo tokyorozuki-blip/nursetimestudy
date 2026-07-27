@@ -82,61 +82,25 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               <button
                 type="button"
                 onClick={() => setRole('看護師')}
-                className={`w-full min-h-[80px] p-4 rounded-2xl border-4 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between select-none ${
+                className={`w-full py-4 px-3 rounded-2xl border-4 text-center transition-all duration-200 active:scale-95 flex items-center justify-center font-extrabold text-base select-none ${
                   role === '看護師'
-                    ? 'bg-sky-600 border-sky-600 text-white shadow-2xl ring-4 ring-sky-300 scale-[1.04] z-10'
-                    : 'bg-sky-50 border-sky-300 text-sky-900 hover:bg-sky-100/80 hover:border-sky-400'
+                    ? 'bg-rose-600 border-rose-600 text-white shadow-2xl ring-4 ring-rose-300 scale-[1.04] z-10'
+                    : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 opacity-60 hover:opacity-90'
                 }`}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className={`font-extrabold text-base flex items-center gap-1.5 ${role === '看護師' ? 'text-white' : 'text-sky-900'}`}>
-                    <Stethoscope className={`w-5 h-5 ${role === '看護師' ? 'text-white' : 'text-sky-600'}`} />
-                    看護師
-                  </span>
-                  {role === '看護師' ? (
-                    <span className="text-[10px] font-extrabold bg-white text-sky-700 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
-                      <CheckCircle2 className="w-3 h-3 text-sky-700" />
-                      選択中
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold bg-sky-200/80 text-sky-800 px-2 py-0.5 rounded-full">
-                      🩺 看護師
-                    </span>
-                  )}
-                </div>
-                <p className={`text-[11px] font-medium mt-1 leading-tight ${role === '看護師' ? 'text-sky-100' : 'text-sky-700'}`}>
-                  処置・バイタル・カルテ等
-                </p>
+                看護師
               </button>
 
               <button
                 type="button"
                 onClick={() => setRole('看護補助者')}
-                className={`w-full min-h-[80px] p-4 rounded-2xl border-4 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between select-none ${
+                className={`w-full py-4 px-3 rounded-2xl border-4 text-center transition-all duration-200 active:scale-95 flex items-center justify-center font-extrabold text-base select-none ${
                   role === '看護補助者'
                     ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xl ring-4 ring-emerald-300 scale-[1.04] z-10'
-                    : 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100/80 hover:border-emerald-400'
+                    : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 opacity-60 hover:opacity-90'
                 }`}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className={`font-extrabold text-base flex items-center gap-1.5 ${role === '看護補助者' ? 'text-white' : 'text-emerald-900'}`}>
-                    <HeartHandshake className={`w-5 h-5 ${role === '看護補助者' ? 'text-white' : 'text-emerald-600'}`} />
-                    看護補助者
-                  </span>
-                  {role === '看護補助者' ? (
-                    <span className="text-[10px] font-extrabold bg-white text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                      選択中
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold bg-emerald-200/80 text-emerald-800 px-2 py-0.5 rounded-full">
-                      🤝 補助者
-                    </span>
-                  )}
-                </div>
-                <p className={`text-[11px] font-medium mt-1 leading-tight ${role === '看護補助者' ? 'text-emerald-100' : 'text-emerald-700'}`}>
-                  環境整備・ケア補助等
-                </p>
+                看護補助者
               </button>
             </div>
           </div>
