@@ -34,6 +34,8 @@ interface TimelineProps {
   onSaveDraft: () => void;
   onSubmit: () => void;
   isDraftSaved: boolean;
+  isSubmitted?: boolean;
+  onUnlockSubmit?: () => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -49,6 +51,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSaveDraft,
   onSubmit,
   isDraftSaved,
+  isSubmitted = false,
+  onUnlockSubmit,
 }) => {
   const taskMap = new Map(PRESET_TASKS.map((t) => [t.id, t]));
 
@@ -58,12 +62,23 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [tempStart, setTempStart] = useState<string>(customStartTime);
   const [tempEnd, setTempEnd] = useState<string>(customEndTime);
 
+  // 所属長連絡確認ダイアログの開閉ステート
+  const [showUnlockConfirmModal, setShowUnlockConfirmModal] = useState<boolean>(false);
+
   // 時間枠変更の反映
   const handleApplyShiftChange = () => {
     if (onChangeShiftAndSlots) {
       onChangeShiftAndSlots(tempShiftType, tempStart, tempEnd);
     }
     setShowShiftConfig(false);
+  };
+
+  // 修正確認ダイアログの「はい」を押した時
+  const handleConfirmUnlock = () => {
+    setShowUnlockConfirmModal(false);
+    if (onUnlockSubmit) {
+      onUnlockSubmit();
+    }
   };
 
   // 未入力コマ数と進捗度の計算
@@ -75,14 +90,19 @@ export const Timeline: React.FC<TimelineProps> = ({
   return (
     <div className="timeline-container">
       {/* 1. 進捗プログレス ＆ ステータスカード */}
-      <div className="status-banner">
+      <div className={`status-banner ${isSubmitted ? 'border-2 border-emerald-500 bg-emerald-50/50' : ''}`}>
         <div className="status-info">
           <div className="status-title-row">
             <h2 className="status-heading">
               <Clock className="w-5 h-5 text-sky-600 inline-icon" />
               15分枠 タイムスタディ入力
             </h2>
-            {unassignedCount > 0 ? (
+            {isSubmitted ? (
+              <span className="bg-emerald-600 text-white font-extrabold px-3 py-1 rounded-full text-xs flex items-center gap-1.5 shadow-sm">
+                <CheckCircle2 className="w-4 h-4" />
+                提出完了済み
+              </span>
+            ) : unassignedCount > 0 ? (
               <span className="badge-unfilled">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 未入力 {unassignedCount} コマ
@@ -95,7 +115,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             )}
           </div>
           <p className="status-subtext">
-            各15分のコマをタップして、定型業務を選択してください（1コマ最大3つ）。
+            {isSubmitted
+              ? '調査データの提出が完了しています。修正する場合は「修正をする」ボタンを押してください。'
+              : '各15分のコマをタップして、定型業務を選択してください（1コマ最大3つ）。'}
           </p>
         </div>
 
@@ -114,36 +136,97 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
       </div>
 
-      {/* 2. アクションツールバー (時間枠調整 / 一時保存 / 送信) */}
+      {/* 2. アクションツールバー (時間枠調整 / 一時保存 / 送信 or 修正) */}
       <div className="action-toolbar">
-        {/* ⏱️ 時間枠ダイレクト変更ボタン */}
-        <button
-          className={`btn-toolbar bg-sky-50 text-sky-800 border-2 border-sky-200 hover:bg-sky-100 ${showShiftConfig ? 'ring-2 ring-sky-500' : ''}`}
-          onClick={() => setShowShiftConfig(!showShiftConfig)}
-          title="勤務時間帯・シフトを画面上で変更します"
-        >
-          <Settings2 className="w-4 h-4 text-sky-600" />
-          <span>時間枠・シフトを変更</span>
-        </button>
+        {!isSubmitted ? (
+          <>
+            {/* ⏱️ 時間枠ダイレクト変更ボタン */}
+            <button
+              className={`btn-toolbar bg-sky-50 text-sky-800 border-2 border-sky-200 hover:bg-sky-100 ${showShiftConfig ? 'ring-2 ring-sky-500' : ''}`}
+              onClick={() => setShowShiftConfig(!showShiftConfig)}
+              title="勤務時間帯・シフトを画面上で変更します"
+            >
+              <Settings2 className="w-4 h-4 text-sky-600" />
+              <span>時間枠・シフトを変更</span>
+            </button>
 
-        <button
-          className={`btn-toolbar btn-save ${isDraftSaved ? 'saved' : ''}`}
-          onClick={onSaveDraft}
-          title="ブラウザに一時保存します"
-        >
-          <Save className="w-4 h-4" />
-          <span>{isDraftSaved ? '一時保存済み' : '一時保存する'}</span>
-        </button>
+            <button
+              className={`btn-toolbar btn-save ${isDraftSaved ? 'saved' : ''}`}
+              onClick={onSaveDraft}
+              title="ブラウザに一時保存します"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isDraftSaved ? '一時保存済み' : '一時保存する'}</span>
+            </button>
 
-        <button
-          className="btn-toolbar btn-submit"
-          onClick={onSubmit}
-          title="調査結果を送信完了します"
-        >
-          <Send className="w-4 h-4" />
-          <span>調査完了・提出</span>
-        </button>
+            <button
+              className="btn-toolbar btn-submit"
+              onClick={onSubmit}
+              title="調査結果を送信完了します"
+            >
+              <Send className="w-4 h-4" />
+              <span>調査完了・提出</span>
+            </button>
+          </>
+        ) : (
+          /* 提出完了済みの場合: 修正をするボタンを表示 */
+          <div className="w-full flex items-center justify-between gap-3 bg-emerald-100/70 border-2 border-emerald-300 p-3 rounded-2xl">
+            <div className="flex items-center gap-2 text-emerald-950 font-bold text-xs sm:text-sm">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>提出完了済みです（データは安全に送信・保存されています）</span>
+            </div>
+            <button
+              type="button"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+              onClick={() => setShowUnlockConfirmModal(true)}
+            >
+              <Trash2 className="w-4 h-4 hidden" />
+              <span>✏️ 修正をする</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* ⚠️ 所属長連絡確認ダイアログ */}
+      {showUnlockConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-card max-w-md p-6 text-center space-y-4 animate-scaleUp border-2 border-amber-400">
+            <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto text-amber-600 shadow-sm">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-extrabold text-slate-900">提出データの修正確認</h3>
+              <p className="text-sm font-bold text-amber-900 bg-amber-50 p-3 rounded-xl border border-amber-200 leading-relaxed">
+                修正をする場合は所属長へ必ず連絡をしてください
+              </p>
+              <p className="text-xs text-slate-500">
+                ロックを解除してデータの再入力・修正を行ってもよろしいですか？
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {/* 「いいえ」ボタン (戻る) */}
+              <button
+                type="button"
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all"
+                onClick={() => setShowUnlockConfirmModal(false)}
+              >
+                いいえ
+              </button>
+
+              {/* 「はい」ボタン (修正可能化) */}
+              <button
+                type="button"
+                className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-sm shadow-md transition-all cursor-pointer"
+                onClick={handleConfirmUnlock}
+              >
+                はい
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ⏱️ 画面上で時間枠・シフトを自由に調整できるポップオーバーカード */}
       {showShiftConfig && (

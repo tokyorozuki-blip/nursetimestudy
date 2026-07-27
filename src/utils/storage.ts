@@ -124,14 +124,59 @@ export function getCustomTasks(): TaskItem[] | null {
   return Array.isArray(tasks) ? tasks : null;
 }
 
-// 全レコード（提出済み）の保存・取得（デモ／ローカル運用用）
+// 全レコード（提出済み）の保存・取得（ローカル ＆ Vercelクラウド同期）
 export function getAllSubmittedRecords(): TimeStudyRecord[] {
   const records = safeParse<TimeStudyRecord[]>(RECORDS_KEY, []);
   return Array.isArray(records) ? records : [];
 }
 
+/** Vercelクラウドから全提出データを非同期フェッチしてローカルへ自動同期 */
+export async function fetchSubmittedRecordsFromVercel(): Promise<TimeStudyRecord[]> {
+  const localRecords = getAllSubmittedRecords();
+  try {
+    const res = await fetch('/api/records');
+    if (res.ok) {
+      const cloudRecords = await res.json();
+      if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
+        // 重複を除外してマージ
+        const recordMap = new Map<string, TimeStudyRecord>();
+        localRecords.forEach((r) => recordMap.set(r.id, r));
+        cloudRecords.forEach((r: TimeStudyRecord) => recordMap.set(r.id, r));
+        const merged = Array.from(recordMap.values());
+        safeSetItem(RECORDS_KEY, JSON.stringify(merged));
+        return merged;
+      }
+    }
+  } catch (err) {
+    console.log('Vercel API sync (fetch) status:', err);
+  }
+  return localRecords;
+}
+
+/** 提出データをローカル保存＋Vercelクラウドへ送信 */
 export function saveSubmittedRecord(record: TimeStudyRecord): void {
   const records = getAllSubmittedRecords();
-  records.push(record);
-  safeSetItem(RECORDS_KEY, JSON.stringify(records));
+  // 重複追加防止
+  if (!records.some((r) => r.id === record.id)) {
+    records.unshift(record);
+    safeSetItem(RECORDS_KEY, JSON.stringify(records));
+  }
+
+  // Vercel クラウドDBへ自動非同期送信
+  submitRecordToVercel(record);
+}
+
+/** VercelクラウドAPIへ非同期提出 */
+export async function submitRecordToVercel(record: TimeStudyRecord): Promise<boolean> {
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    });
+    return res.ok;
+  } catch (err) {
+    console.log('Vercel API submit status:', err);
+    return false;
+  }
 }

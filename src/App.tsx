@@ -9,6 +9,7 @@ import {
   saveDraftSlots,
   clearDraftSlots,
   getAllSubmittedRecords,
+  fetchSubmittedRecordsFromVercel,
   saveSubmittedRecord,
   getCustomTasks,
   saveCustomTasks,
@@ -49,6 +50,9 @@ export function App() {
   const [activeSlot, setActiveSlot] = useState<TimeSlot | null>(null);
   const [isDraftSaved, setIsDraftSaved] = useState<boolean>(false);
 
+  // 本日の提出完了状態
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+
   // 全提出レコード (集計用)
   const [allRecords, setAllRecords] = useState<TimeStudyRecord[]>([]);
 
@@ -74,9 +78,16 @@ export function App() {
       setSlots(generateDefaultTimeSlots('day'));
     }
 
-    // 既存提出レコードの初期化
+    // 既存提出レコードの初期化 ＆ Vercelクラウド同期
     const existing = getAllSubmittedRecords();
     setAllRecords(existing);
+
+    // Vercel クラウドAPIからの非同期フェッチ（他ユーザーの提出分を自動同期）
+    fetchSubmittedRecordsFromVercel().then((cloudRecords) => {
+      if (cloudRecords && cloudRecords.length > 0) {
+        setAllRecords(cloudRecords);
+      }
+    });
   }, []);
 
   // ユーザー設定・シフト・調査日確定保存 ➔ タイムスタディ入力画面へ確実に遷移
@@ -307,6 +318,7 @@ export function App() {
     saveSubmittedRecord(newRecord);
     setAllRecords((prev) => [newRecord, ...prev]);
     clearDraftSlots();
+    setIsSubmitted(true);
 
     confetti({
       particleCount: 100,
@@ -315,6 +327,11 @@ export function App() {
     });
 
     alert('タイムスタディの提出が完了しました！ご協力ありがとうございました。');
+  };
+
+  // 所属長への連絡確認「はい」選択時の提出ロック解除
+  const handleUnlockSubmit = () => {
+    setIsSubmitted(false);
   };
 
   // モックデータ再生成
@@ -389,6 +406,8 @@ export function App() {
             onSaveDraft={handleSaveDraft}
             onSubmit={handleSubmitTimeStudy}
             isDraftSaved={isDraftSaved}
+            isSubmitted={isSubmitted}
+            onUnlockSubmit={handleUnlockSubmit}
           />
         )}
       </main>
