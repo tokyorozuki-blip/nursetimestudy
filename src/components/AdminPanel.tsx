@@ -36,6 +36,10 @@ import {
   Edit,
   Search,
   RefreshCw,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  UserCheck,
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -71,8 +75,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // 登録ユーザー一覧管理ステート
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getAllRegisteredUsers());
   const [userSearchText, setUserSearchText] = useState<string>('');
+  const [userNameFilter, setUserNameFilter] = useState<string>('');
   const [userDeptFilter, setUserDeptFilter] = useState<string>('ALL');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('ALL');
+  const [userDateSort, setUserDateSort] = useState<'desc' | 'asc'>('desc'); // 'desc': 最新順, 'asc': 古い順
   const [userIsSyncing, setUserIsSyncing] = useState<boolean>(false);
 
   // ユーザー編集モーダルステート
@@ -95,7 +101,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       // 1. 登録済みユーザーリストを追加
       if (Array.isArray(fetched)) {
         fetched.forEach((u) => {
-          if (u && u.staffId && u.staffId.trim() !== '') {
+          if (u && u.staffId && u.staffId.trim() !== '' && u.name && u.name.trim() !== '') {
             userMap.set(u.staffId, u);
           }
         });
@@ -103,10 +109,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
       // 2. 提出された集計レコード内のユーザー情報もマージ補完
       records.forEach((r) => {
-        if (r.user && r.user.staffId && r.user.staffId.trim() !== '' && !userMap.has(r.user.staffId)) {
+        if (
+          r.user &&
+          r.user.staffId &&
+          r.user.staffId.trim() !== '' &&
+          r.user.name &&
+          r.user.name.trim() !== '' &&
+          r.user.name !== '名前未設定' &&
+          !userMap.has(r.user.staffId)
+        ) {
           userMap.set(r.user.staffId, {
             staffId: r.user.staffId,
-            name: r.user.name || '名前未設定',
+            name: r.user.name,
             role: r.user.role || '看護師',
             department: r.user.department || 'ICU',
             ageGroup: r.user.ageGroup || '30〜34歳',
@@ -135,20 +149,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [activeSubTab]);
 
-  // 登録ユーザーの絞り込み一覧（無効データ除外ガード付き）
+  // 登録ユーザーの絞り込み一覧（氏名フィルター・登録日時ソート順適用・無効データ完全除外）
   const filteredUsersList = useMemo(() => {
     return registeredUsers
-      .filter((u) => u && u.staffId && u.staffId.trim() !== '')
+      .filter((u) => u && u.staffId && u.staffId.trim() !== '' && u.name && u.name.trim() !== '')
       .filter((u) => {
         const matchRole = userRoleFilter === 'ALL' || (u.role || '看護師') === userRoleFilter;
         const matchDept = userDeptFilter === 'ALL' || (u.department || '未設定') === userDeptFilter;
+        const matchName =
+          !userNameFilter.trim() ||
+          (u.name && u.name.toLowerCase().includes(userNameFilter.trim().toLowerCase()));
         const matchSearch =
-          !userSearchText ||
-          (u.name && u.name.toLowerCase().includes(userSearchText.toLowerCase())) ||
-          (u.staffId && u.staffId.includes(userSearchText));
-        return matchRole && matchDept && matchSearch;
+          !userSearchText.trim() ||
+          (u.name && u.name.toLowerCase().includes(userSearchText.trim().toLowerCase())) ||
+          (u.staffId && u.staffId.includes(userSearchText.trim()));
+        return matchRole && matchDept && matchName && matchSearch;
+      })
+      .sort((a, b) => {
+        const dateA = a.createdAt || '';
+        const dateB = b.createdAt || '';
+        if (userDateSort === 'desc') {
+          return dateB.localeCompare(dateA);
+        } else {
+          return dateA.localeCompare(dateB);
+        }
       });
-  }, [registeredUsers, userRoleFilter, userDeptFilter, userSearchText]);
+  }, [registeredUsers, userRoleFilter, userDeptFilter, userNameFilter, userSearchText, userDateSort]);
 
   // 編集ダイアログを開く
   const handleOpenEditUser = (u: UserProfile) => {
@@ -216,6 +242,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [cloudDeleteStep, setCloudDeleteStep] = useState<0 | 1 | 2>(0); // 0:なし, 1:ダウンロード完了＆削除確認, 2:最終確証
   const [cloudDeleteMode, setCloudDeleteMode] = useState<'all' | 'date'>('all');
   const [cloudIsDeleting, setCloudIsDeleting] = useState<boolean>(false);
+  const [isCloudDateModalOpen, setIsCloudDateModalOpen] = useState<boolean>(false);
+  const [selectedCloudDate, setSelectedCloudDate] = useState<string>(deleteTargetDate || todayStr);
+
+  // 提出データが存在する全対象日のユニークリスト（新しい順）
+  const availableDates = useMemo(() => {
+    const datesSet = new Set<string>();
+    records.forEach((r) => {
+      if (r.user && r.user.targetDate) {
+        datesSet.add(r.user.targetDate);
+      }
+    });
+    return Array.from(datesSet).sort((a, b) => b.localeCompare(a));
+  }, [records]);
 
   // 部署別提出人数集計
   const deptProgressStats = DEPARTMENTS.map((dept) => {
@@ -798,11 +837,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </select>
             </div>
 
+            <div className="filter-item">
+              <UserCheck className="w-4 h-4 text-slate-500" />
+              <label>氏名絞り込み:</label>
+              <input
+                type="text"
+                className="bg-white border border-slate-300 text-xs px-2 py-1 rounded outline-none focus:border-sky-500"
+                placeholder="氏名を入力..."
+                value={userNameFilter}
+                onChange={(e) => setUserNameFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="filter-item">
+              <ArrowUpDown className="w-4 h-4 text-slate-500" />
+              <label>登録日時ソート:</label>
+              <select
+                value={userDateSort}
+                onChange={(e) => setUserDateSort(e.target.value as 'desc' | 'asc')}
+              >
+                <option value="desc">新しい順 (降順 ⬇)</option>
+                <option value="asc">古い順 (昇順 ⬆)</option>
+              </select>
+            </div>
+
             <div className="filter-item search-item">
               <Search className="w-4 h-4 text-slate-500" />
               <input
                 type="text"
-                placeholder="職員ID(6桁)または氏名で検索..."
+                placeholder="職員ID(6桁)で検索..."
                 value={userSearchText}
                 onChange={(e) => setUserSearchText(e.target.value)}
               />
@@ -824,6 +887,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <th>職種</th>
                     <th>所属部署</th>
                     <th>年齢階層</th>
+                    <th
+                      className="cursor-pointer select-none hover:bg-sky-50/80 transition-colors"
+                      onClick={() => setUserDateSort((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+                      title="クリックで登録日時の降順/昇順切り替え"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>登録日時</span>
+                        {userDateSort === 'desc' ? (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 font-bold" />
+                        ) : (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 font-bold" />
+                        )}
+                      </div>
+                    </th>
                     <th>端末ID</th>
                     <th className="text-center">操作 (編集・削除)</th>
                   </tr>
@@ -831,7 +908,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <tbody>
                   {filteredUsersList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-slate-400 text-xs">
+                      <td colSpan={8} className="text-center py-8 text-slate-400 text-xs">
                         該当する登録ユーザーは見つかりませんでした。
                       </td>
                     </tr>
@@ -855,6 +932,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <span className="dept-tag">{u.department || '未設定'}</span>
                         </td>
                         <td className="text-xs text-slate-600">{u.ageGroup || '未設定'}</td>
+                        <td className="text-xs text-slate-500 font-mono">{u.createdAt || '-'}</td>
                         <td className="text-xs text-slate-400 font-mono">{u.deviceId || '-'}</td>
                         <td>
                           <div className="flex items-center justify-center gap-2">
@@ -938,18 +1016,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   type="button"
                   className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
                   onClick={() => {
-                    if (dateTargetRecordsCount === 0) {
-                      alert(`対象日 (${deleteTargetDate}) の提出データは存在しません。`);
+                    if (records.length === 0) {
+                      alert('ダウンロード・削除対象の提出データが存在しません。');
                       return;
                     }
-                    const targetRecs = records.filter((r) => r.user.targetDate === deleteTargetDate);
-                    exportRecordsToCSV(targetRecs, `看護タイムスタディ_${deleteTargetDate}_データ.csv`);
-                    setCloudDeleteMode('date');
-                    setCloudDeleteStep(1);
+                    setSelectedCloudDate(todayStr); // 本日の日付をデフォルトで取得
+                    setIsCloudDateModalOpen(true);
                   }}
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>指定日 ({deleteTargetDate}) をDL後にクラウド削除</span>
+                  <span>指定日を選択してDL後にクラウド削除...</span>
                 </button>
               </div>
             </div>
@@ -1253,6 +1329,114 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
+      {/* 📅 クラウドDB用：削除対象日付選択モーダル */}
+      {isCloudDateModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card max-w-md p-6 bg-white rounded-2xl shadow-2xl">
+            <div className="setup-header text-center mb-4">
+              <Calendar className="w-10 h-10 text-indigo-600 mx-auto mb-2 bg-indigo-50 p-2 rounded-xl" />
+              <h3 className="text-xl font-black text-slate-900">削除したい調査対象日の選択</h3>
+              <p className="setup-sub text-xs text-slate-600 mt-1 font-medium">
+                CSVをダウンロード保存した後にクラウドDBから削除する対象日を選択してください。
+              </p>
+            </div>
+
+            <div className="space-y-4 my-4">
+              <div className="form-group">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="form-label text-xs font-bold text-slate-700">
+                    削除対象日
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCloudDate(todayStr)}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors cursor-pointer"
+                  >
+                    本日 ({todayStr}) に設定
+                  </button>
+                </div>
+                <input
+                  type="date"
+                  className="form-input text-base font-bold text-center"
+                  value={selectedCloudDate}
+                  onChange={(e) => setSelectedCloudDate(e.target.value)}
+                />
+              </div>
+
+              {/* データが存在する対象日のクイック選択チップ一覧 */}
+              {availableDates.length > 0 && (
+                <div>
+                  <div className="text-[11px] font-bold text-slate-500 mb-1.5">データが存在する対象日一覧から選択:</div>
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
+                    {availableDates.map((d) => {
+                      const count = records.filter((r) => r.user.targetDate === d).length;
+                      const isSelected = selectedCloudDate === d;
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setSelectedCloudDate(d)}
+                          className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300'
+                          }`}
+                        >
+                          <span>{d}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isSelected ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                            {count}件
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 選択日付の件数情報表示 */}
+              <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-xl text-xs text-center font-bold text-indigo-950">
+                選択中: <span className="font-mono text-sm text-indigo-700">{selectedCloudDate}</span>
+                <span className="mx-1">➔</span>
+                対象件数: <span className="text-sm font-black text-rose-600">{records.filter((r) => r.user.targetDate === selectedCloudDate).length}</span> 件
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={records.filter((r) => r.user.targetDate === selectedCloudDate).length === 0}
+                onClick={async () => {
+                  const targetRecs = records.filter((r) => r.user.targetDate === selectedCloudDate);
+                  if (targetRecs.length === 0) {
+                    alert(`対象日 (${selectedCloudDate}) の提出データは存在しません。`);
+                    return;
+                  }
+                  setDeleteTargetDate(selectedCloudDate);
+                  setIsCloudDateModalOpen(false);
+                  const saved = await exportRecordsToCSV(targetRecs, `看護タイムスタディ_${selectedCloudDate}_データ.csv`);
+                  if (saved) {
+                    setCloudDeleteMode('date');
+                    setCloudDeleteStep(1);
+                  }
+                }}
+              >
+                <Download className="w-4 h-4" />
+                <span>この日付のCSVを出力して削除確認へ進む</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-secondary py-2.5 text-xs font-semibold"
+                onClick={() => setIsCloudDateModalOpen(false)}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ✏️ ユーザー編集モーダル */}
       {editingUser && (
         <div className="modal-overlay">
@@ -1272,9 +1456,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
 
             <form onSubmit={handleSaveEditUser} className="space-y-4 my-3">
-              <div className="bg-sky-50 border border-sky-200 p-2.5 rounded-lg text-xs flex items-center justify-between">
-                <span className="text-slate-600 font-bold">対象職員ID (変更不可)</span>
-                <strong className="font-mono text-sm text-sky-800 font-bold">{editingUser.staffId}</strong>
+              <div className="bg-sky-50 border border-sky-200 p-2.5 rounded-lg text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 font-bold">対象職員ID (変更不可)</span>
+                  <strong className="font-mono text-sm text-sky-800 font-bold">{editingUser.staffId}</strong>
+                </div>
+                {editingUser.createdAt && (
+                  <div className="flex items-center justify-between pt-1 border-t border-sky-200/60 text-slate-500">
+                    <span>初回登録日時</span>
+                    <span className="font-mono font-semibold">{editingUser.createdAt}</span>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

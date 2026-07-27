@@ -112,6 +112,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
     setAgeGroup('25〜29歳');
     setEditStaffId('');
     setEditTargetUser(null);
+    setAdminPassword('');
     setErrorMsg('');
   };
 
@@ -795,6 +796,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                 </label>
                 <input
                   type="password"
+                  autoComplete="off"
                   className="form-input text-center text-lg font-mono tracking-widest"
                   placeholder="パスワードを入力"
                   value={adminPassword}

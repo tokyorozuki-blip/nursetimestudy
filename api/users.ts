@@ -41,7 +41,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const getJson = await getRes.json();
         if (getJson && getJson.result) {
           const users = typeof getJson.result === 'string' ? JSON.parse(getJson.result) : getJson.result;
-          return res.status(200).json(Array.isArray(users) ? users : []);
+          const validUsers = Array.isArray(users)
+            ? users.filter((u: any) => u && u.staffId && String(u.staffId).trim() !== '')
+            : [];
+          return res.status(200).json(validUsers);
         }
       }
       return res.status(200).json([]);

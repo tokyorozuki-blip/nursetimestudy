@@ -55,7 +55,8 @@ export function getOrCreateDeviceId(): string {
 // 全登録ユーザーDBの取得（ローカル ＆ Vercelクラウド非同期）
 export function getAllRegisteredUsers(): UserProfile[] {
   const users = safeParse<UserProfile[]>(USERS_DB_KEY, []);
-  return Array.isArray(users) ? users : [];
+  if (!Array.isArray(users)) return [];
+  return users.filter((u) => u && typeof u === 'object' && u.staffId && u.staffId.trim() !== '');
 }
 
 /** Vercelクラウドから全端末の登録済み職員リストを取得し二重登録防止 */
@@ -65,10 +66,18 @@ export async function fetchUsersFromVercel(): Promise<UserProfile[]> {
     const res = await fetch('/api/users');
     if (res.ok) {
       const cloudUsers = await res.json();
-      if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+      if (Array.isArray(cloudUsers)) {
         const userMap = new Map<string, UserProfile>();
-        localUsers.forEach((u) => userMap.set(u.staffId, u));
-        cloudUsers.forEach((u: UserProfile) => userMap.set(u.staffId, u));
+        localUsers.forEach((u) => {
+          if (u && u.staffId && u.staffId.trim() !== '') {
+            userMap.set(u.staffId, u);
+          }
+        });
+        cloudUsers.forEach((u: UserProfile) => {
+          if (u && u.staffId && u.staffId.trim() !== '') {
+            userMap.set(u.staffId, u);
+          }
+        });
         const merged = Array.from(userMap.values());
         safeSetItem(USERS_DB_KEY, JSON.stringify(merged));
         return merged;
@@ -82,14 +91,30 @@ export async function fetchUsersFromVercel(): Promise<UserProfile[]> {
 
 // 職員ID(6桁)によるユーザー検索
 export function findUserByStaffId(staffId: string): UserProfile | null {
+  if (!staffId || staffId.trim() === '') return null;
   const users = getAllRegisteredUsers();
   return users.find((u) => u.staffId === staffId) || null;
 }
 
 // ユーザー情報保存（カレント ＆ 全ユーザーDB ＆ Vercelクラウド共有）
 export function saveUserProfile(user: UserProfile): void {
+  if (!user || !user.staffId || user.staffId.trim() === '') return;
   const deviceId = user.deviceId || getOrCreateDeviceId();
-  const updatedUser = { ...user, deviceId };
+  const nowStr = new Date().toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const updatedUser: UserProfile = {
+    ...user,
+    deviceId,
+    createdAt: user.createdAt || nowStr,
+    updatedAt: nowStr,
+  };
+
   safeSetItem(USER_KEY, JSON.stringify(updatedUser));
 
   const users = getAllRegisteredUsers();
@@ -99,7 +124,8 @@ export function saveUserProfile(user: UserProfile): void {
   } else {
     users.push(updatedUser);
   }
-  safeSetItem(USERS_DB_KEY, JSON.stringify(users));
+  const validUsers = users.filter((u) => u && u.staffId && u.staffId.trim() !== '');
+  safeSetItem(USERS_DB_KEY, JSON.stringify(validUsers));
 
   // Vercel クラウドへ保存して全端末で登録IDを共有
   saveUserToVercel(updatedUser);

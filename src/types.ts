@@ -61,6 +61,8 @@ export interface UserProfile {
   ageGroup: AgeGroup;
   targetDate?: string; // YYYY-MM-DD
   deviceId?: string;  // 端末固有ID
+  createdAt?: string; // 登録日時 (例: "2026/07/28 07:57")
+  updatedAt?: string; // 最終更新日時
 }
 
 // 15分タイムスロット

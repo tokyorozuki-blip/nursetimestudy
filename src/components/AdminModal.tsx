@@ -48,6 +48,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ onSuccess, onClose }) =>
             </label>
             <input
               type="password"
+              autoComplete="off"
               className="form-input"
               placeholder="管理者パスワードを入力"
               value={password}
