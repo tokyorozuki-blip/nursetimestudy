@@ -153,7 +153,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             <button
               className={`btn-toolbar btn-save ${isDraftSaved ? 'saved' : ''}`}
               onClick={onSaveDraft}
-              title="ブラウザに一時保存します"
+              title="この端末のブラウザ内に一時保存します（他端末へは引き継げません）"
             >
               <Save className="w-4 h-4" />
               <span>{isDraftSaved ? '一時保存済み' : '一時保存する'}</span>

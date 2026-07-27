@@ -262,7 +262,9 @@ export function App() {
   const handleSaveDraft = () => {
     saveDraftSlots(slots);
     setIsDraftSaved(true);
-    alert('現在の入力状態を一時保存しました。');
+    alert(
+      '現在の入力状態を一時保存しました。\n\n※【ご注意】\n・入力途中のデータはこの端末（ブラウザ）内に保存されます。\n・他の端末への引き継ぎや、ブラウザのキャッシュ・履歴消去を行うと下書きデータは消去されますのでご注意ください。'
+    );
   };
 
   // 早出スロット（8:30以前）の追加
