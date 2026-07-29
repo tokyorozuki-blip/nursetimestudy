@@ -409,6 +409,10 @@ export function App() {
             }}
             onGenerateMockData={handleGenerateMockData}
             onOpenEditMaster={() => setShowTaskMasterModal(true)}
+            onSaveTasks={(updatedTasks) => {
+              setTasks(updatedTasks);
+              saveCustomTasks(updatedTasks);
+            }}
             onRefreshRecords={async () => {
               try {
                 const updated = await fetchSubmittedRecordsFromVercel();

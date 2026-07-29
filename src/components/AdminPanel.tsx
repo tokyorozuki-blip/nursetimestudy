@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole, UserProfile, Department, AgeGroup } from '../types';
-import { DEPARTMENTS, AGE_GROUPS } from '../constants';
+import { DEPARTMENTS, AGE_GROUPS, PRESET_TASKS } from '../constants';
 import { Dashboard } from './Dashboard';
 import { exportRecordsToCSV } from '../utils/exportCsv';
+import { exportTaskMasterToCSV, parseTaskMasterCSV } from '../utils/taskCsv';
 import {
   getDeptTargets,
   saveDeptTargets,
@@ -20,6 +21,8 @@ import {
   ListPlus,
   Trash2,
   Download,
+  Upload,
+  RotateCcw,
   Plus,
   AlertTriangle,
   Lock,
@@ -54,6 +57,7 @@ interface AdminPanelProps {
   onGenerateMockData: () => void;
   onOpenEditMaster?: () => void;
   onRefreshRecords?: () => void;
+  onSaveTasks?: (updatedTasks: TaskItem[]) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -68,6 +72,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onGenerateMockData,
   onOpenEditMaster,
   onRefreshRecords,
+  onSaveTasks,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'progress' | 'master' | 'users' | 'data'>('dashboard');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -600,17 +605,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* 3. 定型業務マスター管理 */}
       {activeSubTab === 'master' && (
         <div className="admin-section space-y-4">
-          <div className="section-title-row flex items-center justify-between">
+          <div className="section-title-row flex items-center justify-between flex-wrap gap-2">
             <h3 className="section-title">定型業務マスターの一括登録・編集管理</h3>
-            {onOpenEditMaster && (
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                className="py-2 px-3.5 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
-                onClick={onOpenEditMaster}
+                className="py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 font-extrabold text-xs rounded-xl border border-slate-300 shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                onClick={() => exportTaskMasterToCSV(tasks)}
               >
-                <span>✏️ 全定型業務マスターの自由変更・色編集ダイアログを開く</span>
+                <Download className="w-3.5 h-3.5 text-sky-600" />
+                <span>登録業務をCSV出力</span>
               </button>
-            )}
+              <button
+                type="button"
+                className="py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs rounded-xl border border-amber-300 shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                onClick={() => {
+                  if (window.confirm('登録されている業務変更内容を破棄し、標準の初期デフォルト業務マスターに戻しますか？')) {
+                    if (onSaveTasks) {
+                      onSaveTasks(PRESET_TASKS);
+                      alert('標準の初期デフォルト業務マスターにリセット・保存しました。');
+                    } else if (onOpenEditMaster) {
+                      onOpenEditMaster();
+                    }
+                  }
+                }}
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+                <span>デフォルト初期業務に戻す</span>
+              </button>
+              {onOpenEditMaster && (
+                <button
+                  type="button"
+                  className="py-2 px-3.5 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  onClick={onOpenEditMaster}
+                >
+                  <span>✏️ 業務マスター一括編集・修正CSVの取込ダイアログを開く</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <form onSubmit={handleCreateTask} className="master-add-card">
