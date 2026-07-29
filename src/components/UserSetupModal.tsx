@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Department, AgeGroup, JobRole, ShiftType } from '../types';
 import { DEPARTMENTS, AGE_GROUPS } from '../constants';
-import { findUserByStaffId, fetchUsersFromVercel, deleteUserProfileByStaffId, saveUserProfile } from '../utils/storage';
+import { findUserByStaffId, fetchUsersFromVercel, deleteUserProfileByStaffId, saveUserProfile, getOrCreateDeviceId } from '../utils/storage';
 import {
   User,
   Building2,
@@ -189,7 +189,8 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
           role: existingUserFound.role,
           department: existingUserFound.department,
           ageGroup: existingUserFound.ageGroup,
-          deviceId: initialUser?.deviceId,
+          deviceId: existingUserFound.deviceId || initialUser?.deviceId || getOrCreateDeviceId(),
+          createdAt: existingUserFound.createdAt,
         },
         targetDate,
         shiftType,
@@ -240,7 +241,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
       role,
       department,
       ageGroup,
-      deviceId: initialUser?.deviceId,
+      deviceId: initialUser?.deviceId || getOrCreateDeviceId(),
       createdAt: initialUser?.createdAt || nowStr,
     };
 
@@ -947,7 +948,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   role,
                   department,
                   ageGroup,
-                  deviceId: initialUser?.deviceId,
+                  deviceId: editTargetUser?.deviceId || initialUser?.deviceId || getOrCreateDeviceId(),
                   createdAt: editTargetUser?.createdAt || initialUser?.createdAt,
                 };
                 saveUserProfile(updatedProfile);

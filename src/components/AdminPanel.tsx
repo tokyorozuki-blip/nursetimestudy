@@ -103,24 +103,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const fetched = await fetchUsersFromVercel();
       const userMap = new Map<string, UserProfile>();
 
-      // 各職員IDに対応する最古の提出日時マップ（登録日時の自動フォールバック補完用）
+      // 各職員IDに対応する最古提出日時・端末IDの自動抽出マップ
       const firstSubmitMap = new Map<string, string>();
+      const deviceIdMap = new Map<string, string>();
+
       records.forEach((r) => {
-        if (r.user && r.user.staffId && r.submittedAt) {
-          const prev = firstSubmitMap.get(r.user.staffId);
-          if (!prev || r.submittedAt < prev) {
-            firstSubmitMap.set(r.user.staffId, r.submittedAt);
+        if (r.user && r.user.staffId) {
+          if (r.submittedAt) {
+            const prev = firstSubmitMap.get(r.user.staffId);
+            if (!prev || r.submittedAt < prev) {
+              firstSubmitMap.set(r.user.staffId, r.submittedAt);
+            }
+          }
+          if (r.user.deviceId && r.user.deviceId.trim() !== '') {
+            deviceIdMap.set(r.user.staffId, r.user.deviceId);
           }
         }
       });
 
-      // 1. 登録済みユーザーリストを追加 (createdAt が無い場合は提出日時から補完)
+      // 1. 登録済みユーザーリストを追加 (createdAt / deviceId が無い場合は補完)
       if (Array.isArray(fetched)) {
         fetched.forEach((u) => {
           if (u && u.staffId && u.staffId.trim() !== '' && u.name && u.name.trim() !== '') {
             const fallbackCreated = firstSubmitMap.get(u.staffId) || u.createdAt;
+            const fallbackDevice = u.deviceId || deviceIdMap.get(u.staffId) || `DEV-${u.staffId.slice(-4)}`;
             userMap.set(u.staffId, {
               ...u,
+              deviceId: fallbackDevice,
               createdAt: u.createdAt || fallbackCreated,
             });
           }
@@ -143,6 +152,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             r.user.createdAt ||
             firstSubmitMap.get(r.user.staffId) ||
             r.submittedAt;
+          const devId =
+            existing?.deviceId ||
+            r.user.deviceId ||
+            deviceIdMap.get(r.user.staffId) ||
+            `DEV-${r.user.staffId.slice(-4)}`;
 
           if (!existing) {
             userMap.set(r.user.staffId, {
@@ -151,14 +165,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               role: r.user.role || '看護師',
               department: r.user.department || 'ICU',
               ageGroup: r.user.ageGroup || '30〜34歳',
-              deviceId: r.user.deviceId || '',
+              deviceId: devId,
               createdAt: createdDate,
             });
-          } else if (!existing.createdAt && createdDate) {
-            userMap.set(r.user.staffId, {
-              ...existing,
-              createdAt: createdDate,
-            });
+          } else {
+            let isUpdated = false;
+            const updatedUser = { ...existing };
+            if (!updatedUser.createdAt && createdDate) {
+              updatedUser.createdAt = createdDate;
+              isUpdated = true;
+            }
+            if (!updatedUser.deviceId && devId) {
+              updatedUser.deviceId = devId;
+              isUpdated = true;
+            }
+            if (isUpdated) {
+              userMap.set(r.user.staffId, updatedUser);
+            }
           }
         }
       });
