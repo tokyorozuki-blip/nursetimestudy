@@ -71,7 +71,7 @@ export async function exportDashboardToPPTX(
   const slide1 = pptx.addSlide();
   
   // 背景スタイル (濃紺)
-  slide1.addShape(pptx.Shapes.rect, {
+  slide1.addShape('rect', {
     x: 0,
     y: 0,
     w: '100%',
@@ -80,7 +80,7 @@ export async function exportDashboardToPPTX(
   });
 
   // アクセントライン
-  slide1.addShape(pptx.Shapes.rect, {
+  slide1.addShape('rect', {
     x: 0.8,
     y: 1.8,
     w: 0.15,
@@ -122,7 +122,7 @@ export async function exportDashboardToPPTX(
   });
 
   // メタデータカード
-  slide1.addShape(pptx.Shapes.rect, {
+  slide1.addShape('rect', {
     x: 1.2,
     y: 4.8,
     w: 10.8,
@@ -153,7 +153,7 @@ export async function exportDashboardToPPTX(
   // ヘッダー生成共通関数
   // ----------------------------------------------------
   const addSlideHeader = (slide: pptxgen.Slide, title: string, subtitle: string) => {
-    slide.addShape(pptx.Shapes.rect, {
+    slide.addShape('rect', {
       x: 0,
       y: 0,
       w: '100%',
@@ -201,7 +201,7 @@ export async function exportDashboardToPPTX(
   addSlideHeader(slide2, '1. 全体集計サマリー', '全対象データの業務割合および時間比較');
 
   // KPIカード 1: 直接看護
-  slide2.addShape(pptx.Shapes.rect, {
+  slide2.addShape('rect', {
     x: 0.6,
     y: 1.2,
     w: 3.7,
@@ -240,7 +240,7 @@ export async function exportDashboardToPPTX(
   });
 
   // KPIカード 2: 間接看護
-  slide2.addShape(pptx.Shapes.rect, {
+  slide2.addShape('rect', {
     x: 4.8,
     y: 1.2,
     w: 3.7,
@@ -279,7 +279,7 @@ export async function exportDashboardToPPTX(
   });
 
   // KPIカード 3: その他・管理
-  slide2.addShape(pptx.Shapes.rect, {
+  slide2.addShape('rect', {
     x: 9.0,
     y: 1.2,
     w: 3.7,
@@ -361,8 +361,8 @@ export async function exportDashboardToPPTX(
     border: { pt: 1, color: 'CBD5E1' },
   });
 
-  // ★ 全体分析サマリカード
-  slide2.addShape(pptx.Shapes.rect, {
+  // 全体分析サマリカード
+  slide2.addShape('rect', {
     x: 0.6,
     y: 5.4,
     w: 12.1,
@@ -481,7 +481,6 @@ export async function exportDashboardToPPTX(
     ]);
   });
 
-  // 表の描画 (高さ調整)
   slide3.addTable(deptRows, {
     x: 0.6,
     y: 1.2,
@@ -492,8 +491,8 @@ export async function exportDashboardToPPTX(
     border: { pt: 1, color: 'E2E8F0' },
   });
 
-  // ★ 病棟別分析サマリカード
-  slide3.addShape(pptx.Shapes.rect, {
+  // 病棟別分析サマリカード
+  slide3.addShape('rect', {
     x: 0.6,
     y: 5.4,
     w: 12.1,
@@ -603,8 +602,8 @@ export async function exportDashboardToPPTX(
     border: { pt: 1, color: 'E2E8F0' },
   });
 
-  // ★ 職種別分析サマリカード
-  slide4.addShape(pptx.Shapes.rect, {
+  // 職種別分析サマリカード
+  slide4.addShape('rect', {
     x: 0.6,
     y: 5.4,
     w: 12.1,
@@ -724,8 +723,8 @@ export async function exportDashboardToPPTX(
     border: { pt: 1, color: 'E2E8F0' },
   });
 
-  // ★ 年齢層別分析サマリカード
-  slide5.addShape(pptx.Shapes.rect, {
+  // 年齢層別分析サマリカード
+  slide5.addShape('rect', {
     x: 0.6,
     y: 5.4,
     w: 12.1,
