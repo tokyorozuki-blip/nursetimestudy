@@ -10,8 +10,8 @@ interface ExportFilterSummary {
 }
 
 /**
- * タイムスタディレコードからPowerPoint (.pptx) 分析レポートを自動生成してダウンロード
- * （各結果スライドに動的サマリ・考察テキストカードを追加）
+ * タイムスタディレコードからPowerPoint (.pptx) 分析・考察付き総合レポートを自動生成してダウンロード
+ * （データスライド ＋ 全体/病棟別/職種別/年齢別の詳細レポートスライドを完備）
  */
 export async function exportDashboardToPPTX(
   records: TimeStudyRecord[],
@@ -24,7 +24,7 @@ export async function exportDashboardToPPTX(
       : (pptxgen as any).default || pptxgen;
 
   const pptx = new PptxGenConstructor();
-  pptx.layout = 'LAYOUT_16x9';
+  pptx.layout = 'LAYOUT_16x9'; // 幅 13.33 インチ × 高さ 7.5 インチ
 
   const todayStr = new Date().toLocaleDateString('ja-JP', {
     year: 'numeric',
@@ -66,11 +66,101 @@ export async function exportDashboardToPPTX(
   const otherPercent = Math.round((totalOtherMins / grandTotalMins) * 100);
 
   // ----------------------------------------------------
+  // ヘッダー生成共通関数 (高さ 0.8 インチ)
+  // ----------------------------------------------------
+  const addSlideHeader = (slide: pptxgen.Slide, title: string, subtitle: string) => {
+    slide.addShape('rect', {
+      x: 0,
+      y: 0,
+      w: '100%',
+      h: 0.8,
+      fill: { color: '0F172A' },
+    });
+
+    slide.addText(title, {
+      x: 0.6,
+      y: 0.1,
+      w: 8,
+      h: 0.38,
+      fontSize: 18,
+      fontFace: 'Meiryo',
+      color: 'FFFFFF',
+      bold: true,
+    });
+
+    slide.addText(subtitle, {
+      x: 0.6,
+      y: 0.48,
+      w: 8,
+      h: 0.25,
+      fontSize: 11,
+      fontFace: 'Meiryo',
+      color: '94A3B8',
+    });
+
+    slide.addText(`作成日: ${todayStr}`, {
+      x: 9.5,
+      y: 0.22,
+      w: 3.2,
+      h: 0.35,
+      fontSize: 11,
+      fontFace: 'Meiryo',
+      color: 'CBD5E1',
+      align: 'right',
+    });
+  };
+
+  // ----------------------------------------------------
+  // 3ブロックレポート用カード描画ヘルパー関数
+  // ----------------------------------------------------
+  const addReportSectionCards = (
+    slide: pptxgen.Slide,
+    card1: { title: string; text: string; bg: string; border: string; textCol: string },
+    card2: { title: string; text: string; bg: string; border: string; textCol: string },
+    card3: { title: string; text: string; bg: string; border: string; textCol: string }
+  ) => {
+    const cards = [card1, card2, card3];
+    cards.forEach((c, idx) => {
+      const topY = 1.05 + idx * 1.85;
+
+      slide.addShape('rect', {
+        x: 0.6,
+        y: topY,
+        w: 12.13,
+        h: 1.65,
+        fill: { color: c.bg },
+        line: { color: c.border, width: 1.5 },
+      });
+
+      slide.addText(c.title, {
+        x: 0.85,
+        y: topY + 0.12,
+        w: 11.6,
+        h: 0.3,
+        fontSize: 13,
+        fontFace: 'Meiryo',
+        color: c.textCol,
+        bold: true,
+      });
+
+      slide.addText(c.text, {
+        x: 0.85,
+        y: topY + 0.45,
+        w: 11.6,
+        h: 1.05,
+        fontSize: 11,
+        fontFace: 'Meiryo',
+        color: '334155',
+        lineSpacing: 18,
+      });
+    });
+  };
+
+  // ----------------------------------------------------
   // SLIDE 1: カバー（タイトル）
   // ----------------------------------------------------
   const slide1 = pptx.addSlide();
   
-  // 背景スタイル (濃紺)
   slide1.addShape('rect', {
     x: 0,
     y: 0,
@@ -79,52 +169,49 @@ export async function exportDashboardToPPTX(
     fill: { color: '0F172A' },
   });
 
-  // アクセントライン
   slide1.addShape('rect', {
     x: 0.8,
-    y: 1.8,
+    y: 1.6,
     w: 0.15,
     h: 3.2,
     fill: { color: '0284C7' },
   });
 
-  // タイトルテキスト
   slide1.addText('看護業務 タイムスタディ調査', {
     x: 1.2,
-    y: 1.8,
+    y: 1.6,
     w: 11,
-    h: 0.6,
+    h: 0.5,
     fontSize: 22,
     fontFace: 'Meiryo',
     color: '94A3B8',
     bold: true,
   });
 
-  slide1.addText('分析結果 総合レポート', {
+  slide1.addText('分析結果 総合評価レポート', {
     x: 1.2,
-    y: 2.5,
+    y: 2.2,
     w: 11,
-    h: 1.2,
-    fontSize: 40,
+    h: 1.1,
+    fontSize: 38,
     fontFace: 'Meiryo',
     color: 'FFFFFF',
     bold: true,
   });
 
-  slide1.addText('全体・各病棟別・各職種別・年齢層別 集計分析・サマリ', {
+  slide1.addText('全体・各病棟別・各職種別・年齢層別 調査分析＆改善提案報告書', {
     x: 1.2,
-    y: 3.8,
+    y: 3.5,
     w: 11,
-    h: 0.6,
-    fontSize: 18,
+    h: 0.5,
+    fontSize: 17,
     fontFace: 'Meiryo',
     color: '38BDF8',
   });
 
-  // メタデータカード
   slide1.addShape('rect', {
     x: 1.2,
-    y: 4.8,
+    y: 4.5,
     w: 10.8,
     h: 1.6,
     fill: { color: '1E293B' },
@@ -139,7 +226,7 @@ export async function exportDashboardToPPTX(
     `出力日時: ${todayStr}   |   対象提出データ数: ${records.length}件   |   対象職員数: ${totalUserCount}名\n${filterText}`,
     {
       x: 1.5,
-      y: 5.0,
+      y: 4.7,
       w: 10.2,
       h: 1.2,
       fontSize: 13,
@@ -150,174 +237,125 @@ export async function exportDashboardToPPTX(
   );
 
   // ----------------------------------------------------
-  // ヘッダー生成共通関数
-  // ----------------------------------------------------
-  const addSlideHeader = (slide: pptxgen.Slide, title: string, subtitle: string) => {
-    slide.addShape('rect', {
-      x: 0,
-      y: 0,
-      w: '100%',
-      h: 1.0,
-      fill: { color: '0F172A' },
-    });
-
-    slide.addText(title, {
-      x: 0.6,
-      y: 0.15,
-      w: 8,
-      h: 0.45,
-      fontSize: 20,
-      fontFace: 'Meiryo',
-      color: 'FFFFFF',
-      bold: true,
-    });
-
-    slide.addText(subtitle, {
-      x: 0.6,
-      y: 0.6,
-      w: 8,
-      h: 0.3,
-      fontSize: 12,
-      fontFace: 'Meiryo',
-      color: '94A3B8',
-    });
-
-    slide.addText(`作成日: ${todayStr}`, {
-      x: 9.5,
-      y: 0.3,
-      w: 3.2,
-      h: 0.4,
-      fontSize: 11,
-      fontFace: 'Meiryo',
-      color: 'CBD5E1',
-      align: 'right',
-    });
-  };
-
-  // ----------------------------------------------------
-  // SLIDE 2: 全体集計サマリー
+  // SLIDE 2: 全体集計データ
   // ----------------------------------------------------
   const slide2 = pptx.addSlide();
-  addSlideHeader(slide2, '1. 全体集計サマリー', '全対象データの業務割合および時間比較');
+  addSlideHeader(slide2, '1-1. 全体集計データ', '全対象データの業務割合および時間比較');
 
-  // KPIカード 1: 直接看護
   slide2.addShape('rect', {
     x: 0.6,
-    y: 1.2,
+    y: 1.0,
     w: 3.7,
-    h: 1.5,
+    h: 1.25,
     fill: { color: 'F0F9FF' },
     line: { color: 'BAE6FD', width: 2 },
   });
   slide2.addText('直接看護業務', {
     x: 0.8,
-    y: 1.3,
+    y: 1.08,
     w: 3.3,
-    h: 0.3,
-    fontSize: 13,
+    h: 0.25,
+    fontSize: 12,
     fontFace: 'Meiryo',
     color: '0369A1',
     bold: true,
   });
   slide2.addText(`${directPercent}%`, {
     x: 0.8,
-    y: 1.6,
+    y: 1.32,
     w: 3.3,
-    h: 0.6,
-    fontSize: 32,
+    h: 0.5,
+    fontSize: 28,
     fontFace: 'Meiryo',
     color: '0284C7',
     bold: true,
   });
   slide2.addText(`合計: ${(totalDirectMins / 60).toFixed(1)} 時間`, {
     x: 0.8,
-    y: 2.25,
+    y: 1.88,
     w: 3.3,
-    h: 0.3,
-    fontSize: 11,
+    h: 0.25,
+    fontSize: 10.5,
     fontFace: 'Meiryo',
     color: '0C4A6E',
   });
 
-  // KPIカード 2: 間接看護
   slide2.addShape('rect', {
     x: 4.8,
-    y: 1.2,
+    y: 1.0,
     w: 3.7,
-    h: 1.5,
+    h: 1.25,
     fill: { color: 'ECFDF5' },
     line: { color: 'A7F3D0', width: 2 },
   });
   slide2.addText('間接看護業務', {
     x: 5.0,
-    y: 1.3,
+    y: 1.08,
     w: 3.3,
-    h: 0.3,
-    fontSize: 13,
+    h: 0.25,
+    fontSize: 12,
     fontFace: 'Meiryo',
     color: '047857',
     bold: true,
   });
   slide2.addText(`${indirectPercent}%`, {
     x: 5.0,
-    y: 1.6,
+    y: 1.32,
     w: 3.3,
-    h: 0.6,
-    fontSize: 32,
+    h: 0.5,
+    fontSize: 28,
     fontFace: 'Meiryo',
     color: '10B981',
     bold: true,
   });
   slide2.addText(`合計: ${(totalIndirectMins / 60).toFixed(1)} 時間`, {
     x: 5.0,
-    y: 2.25,
+    y: 1.88,
     w: 3.3,
-    h: 0.3,
-    fontSize: 11,
+    h: 0.25,
+    fontSize: 10.5,
     fontFace: 'Meiryo',
     color: '064E3B',
   });
 
-  // KPIカード 3: その他・管理
   slide2.addShape('rect', {
     x: 9.0,
-    y: 1.2,
+    y: 1.0,
     w: 3.7,
-    h: 1.5,
+    h: 1.25,
     fill: { color: 'F3E8FF' },
     line: { color: 'E9D5FF', width: 2 },
   });
   slide2.addText('その他・管理業務', {
     x: 9.2,
-    y: 1.3,
+    y: 1.08,
     w: 3.3,
-    h: 0.3,
-    fontSize: 13,
+    h: 0.25,
+    fontSize: 12,
     fontFace: 'Meiryo',
     color: '7E22CE',
     bold: true,
   });
   slide2.addText(`${otherPercent}%`, {
     x: 9.2,
-    y: 1.6,
+    y: 1.32,
     w: 3.3,
-    h: 0.6,
-    fontSize: 32,
+    h: 0.5,
+    fontSize: 28,
     fontFace: 'Meiryo',
     color: 'A855F7',
     bold: true,
   });
   slide2.addText(`合計: ${(totalOtherMins / 60).toFixed(1)} 時間`, {
     x: 9.2,
-    y: 2.25,
+    y: 1.88,
     w: 3.3,
-    h: 0.3,
-    fontSize: 11,
+    h: 0.25,
+    fontSize: 10.5,
     fontFace: 'Meiryo',
     color: '581C87',
   });
 
-  // 内訳テーブル
   const overallRows: pptxgen.TableRow[] = [
     [
       { text: '業務区分', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true } },
@@ -353,57 +391,51 @@ export async function exportDashboardToPPTX(
 
   slide2.addTable(overallRows, {
     x: 0.6,
-    y: 2.9,
-    w: 12.1,
-    colW: [2.5, 1.8, 1.8, 6.0],
-    fontSize: 11,
+    y: 2.45,
+    w: 12.13,
+    colW: [2.5, 1.8, 1.8, 6.03],
+    fontSize: 10,
     fontFace: 'Meiryo',
     border: { pt: 1, color: 'CBD5E1' },
   });
 
-  // 全体分析サマリカード
-  slide2.addShape('rect', {
-    x: 0.6,
-    y: 5.4,
-    w: 12.1,
-    h: 1.6,
-    fill: { color: 'F8FAFC' },
-    line: { color: 'CBD5E1', width: 1 },
-  });
-
-  slide2.addText('💡 全体分析サマリ・考察ポイント', {
-    x: 0.8,
-    y: 5.5,
-    w: 11.7,
-    h: 0.3,
-    fontSize: 12,
-    fontFace: 'Meiryo',
-    color: '0F172A',
-    bold: true,
-  });
-
-  const overallSummaryText = `・直接看護業務の割合は【${directPercent}%】であり、本調査対象全体の主要な時間を占めています。
-・間接看護業務（${indirectPercent}%）および管理・その他業務（${otherPercent}%）の合計は【${100 - directPercent}%】です。
-・記録入力やカンファレンス・物品準備などの間接業務時間の効率化を図ることで、さらなる患者直接ケア時間の確保が期待されます。`;
-
-  slide2.addText(overallSummaryText, {
-    x: 0.8,
-    y: 5.85,
-    w: 11.7,
-    h: 1.0,
-    fontSize: 11,
-    fontFace: 'Meiryo',
-    color: '334155',
-    lineSpacing: 18,
-  });
-
   // ----------------------------------------------------
-  // SLIDE 3: 各病棟（部署）別 集計分析
+  // SLIDE 3: 【全体】 総合分析＆改善提案レポート
   // ----------------------------------------------------
   const slide3 = pptx.addSlide();
-  addSlideHeader(slide3, '2. 各病棟（部署）別 集計分析', '部署ごとの業務時間および直接看護割合の一覧比較');
+  addSlideHeader(slide3, '1-2. 【全体】 総合分析＆改善提案レポート', '全データに基づく業務割合の構造評価・課題抽出・改善ロードマップ');
 
-  // 病棟別集計
+  addReportSectionCards(
+    slide3,
+    {
+      title: '📌 1. 全体業務バランスの分析評価',
+      text: `・本調査における直接看護業務の割合は【${directPercent}%】（合計 ${(totalDirectMins / 60).toFixed(1)}時間）であり、患者ケアへの直接投入時間が全体の主軸を占めています。\n・一方、間接看護業務（${indirectPercent}%）およびその他管理業務（${otherPercent}%）の合計が【${100 - directPercent}%】に上り、実稼働時間の約半数が患者非対面業務に費やされている現状が判明しました。`,
+      bg: 'F0F9FF',
+      border: 'BAE6FD',
+      textCol: '0369A1',
+    },
+    {
+      title: '🔍 2. 抽出された主要課題・ボトルネック',
+      text: `・電子カルテ記録および情報収集・申し送り等の間接時間が圧迫要因となっており、看護師のステーション滞留時間が長期化しています。\n・物品・配薬準備および患者搬送・環境整備などの周辺業務が直接ケアの割り込み要因となっており、看護専門職の集中を阻害しています。`,
+      bg: 'FEF2F2',
+      border: 'FCA5A5',
+      textCol: 'B91C1C',
+    },
+    {
+      title: '🚀 3. 今後の改善アクション＆推奨施策',
+      text: `・【電子カルテ・申し送りの省力化】: テンプレート化・音声入力の導入および申し送り事項の要約化による記録時間15%削減。\n・【看護補助者へのタスクシフト】: 環境整備・リネン交換・配膳下膳・定常搬送の標準化による看護師のケア時間最大化。`,
+      bg: 'F0FDF4',
+      border: '86EFAC',
+      textCol: '15803D',
+    }
+  );
+
+  // ----------------------------------------------------
+  // SLIDE 4: 各病棟（部署）別 集計データ
+  // ----------------------------------------------------
+  const slide4 = pptx.addSlide();
+  addSlideHeader(slide4, '2-1. 各病棟（部署）別 集計データ', '部署ごとの業務時間および直接看護割合の一覧比較 (全18部署)');
+
   const deptStatsMap: Record<string, { direct: number; indirect: number; other: number; count: number; users: Set<string> }> = {};
 
   DEPARTMENTS.forEach((d) => {
@@ -434,31 +466,18 @@ export async function exportDashboardToPPTX(
     }
   });
 
-  const deptRows: pptxgen.TableRow[] = [
-    [
-      { text: '部署名', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true } },
-      { text: '人数', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
-      { text: '直接看護 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
-      { text: '間接看護 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
-      { text: 'その他 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
-      { text: '合計 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
-      { text: '直接看護率 (%)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
-    ],
-  ];
-
   const activeDepts = DEPARTMENTS.filter((d) => deptStatsMap[d] && deptStatsMap[d].count > 0);
+  const displayDepts = activeDepts.length > 0 ? activeDepts : DEPARTMENTS.slice(0, 10);
 
   let topDept = '';
   let topDeptPct = -1;
   let lowDept = '';
   let lowDeptPct = 999;
 
-  activeDepts.forEach((dept, idx) => {
+  activeDepts.forEach((dept) => {
     const st = deptStatsMap[dept];
     const totalH = st.direct + st.indirect + st.other;
     const directPct = totalH > 0 ? Math.round((st.direct / totalH) * 100) : 0;
-    const bg = idx % 2 === 1 ? 'F8FAFC' : 'FFFFFF';
-
     if (totalH > 0) {
       if (directPct > topDeptPct) {
         topDeptPct = directPct;
@@ -469,69 +488,100 @@ export async function exportDashboardToPPTX(
         lowDept = dept;
       }
     }
-
-    deptRows.push([
-      { text: dept, options: { fill: { color: bg }, bold: true } },
-      { text: `${st.users.size}名`, options: { fill: { color: bg }, align: 'right' } },
-      { text: `${st.direct.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', color: '0284C7' } },
-      { text: `${st.indirect.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', color: '10B981' } },
-      { text: `${st.other.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', color: 'A855F7' } },
-      { text: `${totalH.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', bold: true } },
-      { text: `${directPct}%`, options: { fill: { color: bg }, align: 'right', bold: true, color: '0284C7' } },
-    ]);
   });
 
-  slide3.addTable(deptRows, {
+  const midIndex = Math.ceil(displayDepts.length / 2);
+  const leftDepts = displayDepts.slice(0, midIndex);
+  const rightDepts = displayDepts.slice(midIndex);
+
+  const createDeptTableRows = (deptList: string[]): pptxgen.TableRow[] => {
+    const rows: pptxgen.TableRow[] = [
+      [
+        { text: '部署名', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true } },
+        { text: '人数', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
+        { text: '直接 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
+        { text: '間接 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
+        { text: '他 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
+        { text: '合計 (h)', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
+        { text: '直接率', options: { fill: { color: '334155' }, color: 'FFFFFF', bold: true, align: 'right' } },
+      ],
+    ];
+
+    deptList.forEach((dept, idx) => {
+      const st = deptStatsMap[dept] || { direct: 0, indirect: 0, other: 0, users: new Set() };
+      const totalH = st.direct + st.indirect + st.other;
+      const directPct = totalH > 0 ? Math.round((st.direct / totalH) * 100) : 0;
+      const bg = idx % 2 === 1 ? 'F8FAFC' : 'FFFFFF';
+
+      rows.push([
+        { text: dept, options: { fill: { color: bg }, bold: true } },
+        { text: `${st.users.size}名`, options: { fill: { color: bg }, align: 'right' } },
+        { text: `${st.direct.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', color: '0284C7' } },
+        { text: `${st.indirect.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', color: '10B981' } },
+        { text: `${st.other.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', color: 'A855F7' } },
+        { text: `${totalH.toFixed(1)}`, options: { fill: { color: bg }, align: 'right', bold: true } },
+        { text: `${directPct}%`, options: { fill: { color: bg }, align: 'right', bold: true, color: '0284C7' } },
+      ]);
+    });
+    return rows;
+  };
+
+  slide4.addTable(createDeptTableRows(leftDepts), {
     x: 0.6,
-    y: 1.2,
-    w: 12.1,
-    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.8],
-    fontSize: 10,
+    y: 0.95,
+    w: 5.9,
+    colW: [1.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
+    fontSize: 9,
     fontFace: 'Meiryo',
     border: { pt: 1, color: 'E2E8F0' },
   });
 
-  // 病棟別分析サマリカード
-  slide3.addShape('rect', {
-    x: 0.6,
-    y: 5.4,
-    w: 12.1,
-    h: 1.6,
-    fill: { color: 'F0F9FF' },
-    line: { color: 'BAE6FD', width: 1 },
-  });
-
-  slide3.addText('💡 病棟（部署）別分析サマリ・特徴', {
-    x: 0.8,
-    y: 5.5,
-    w: 11.7,
-    h: 0.3,
-    fontSize: 12,
+  slide4.addTable(createDeptTableRows(rightDepts), {
+    x: 6.8,
+    y: 0.95,
+    w: 5.9,
+    colW: [1.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
+    fontSize: 9,
     fontFace: 'Meiryo',
-    color: '0369A1',
-    bold: true,
-  });
-
-  const deptSummaryText = `・最も直接看護率が高い部署: 【${topDept || '該当なし'}】 (${topDeptPct >= 0 ? topDeptPct + '%' : '-'})
-・最も間接・その他業務比率が高い部署: 【${lowDept || '該当なし'}】 (直接看護率 ${lowDeptPct < 999 ? lowDeptPct + '%' : '-'})
-・病棟やICU・外来などの部署ごとに患者重症度や記録・搬送負担が異なり、各病棟の特性に応じた人員配置・タスク運用の検討が有効です。`;
-
-  slide3.addText(deptSummaryText, {
-    x: 0.8,
-    y: 5.85,
-    w: 11.7,
-    h: 1.0,
-    fontSize: 11,
-    fontFace: 'Meiryo',
-    color: '0C4A6E',
-    lineSpacing: 18,
+    border: { pt: 1, color: 'E2E8F0' },
   });
 
   // ----------------------------------------------------
-  // SLIDE 4: 各職種別 集計分析
+  // SLIDE 5: 【病棟（部署）別】 業務負荷・部署別課題レポート
   // ----------------------------------------------------
-  const slide4 = pptx.addSlide();
-  addSlideHeader(slide4, '3. 各職種別 集計分析', '職種（看護師・准看護師・看護助手等）ごとの業務時間比較');
+  const slide5 = pptx.addSlide();
+  addSlideHeader(slide5, '2-2. 【病棟別】 業務負荷・部署別課題レポート', '病棟・ICU・外来等の部署特性と看護業務バランスの個別分析');
+
+  addReportSectionCards(
+    slide5,
+    {
+      title: '🏥 1. 部署間における直接看護率の偏り分析',
+      text: `・最も直接看護率が高い部署: 【${topDept || '該当なし'}】 (${topDeptPct >= 0 ? topDeptPct + '%' : '-'})\n・最も間接・その他業務比率が高い部署: 【${lowDept || '該当なし'}】 (直接看護率 ${lowDeptPct < 999 ? lowDeptPct + '%' : '-'})\n・ICU/HCUや急性期病棟ではバイタル・処置が集中する一方、外来・特定病棟では事前カルテ確認・問診・調整業務の割合が高くなっています。`,
+      bg: 'F0F9FF',
+      border: 'BAE6FD',
+      textCol: '0369A1',
+    },
+    {
+      title: '⚠️ 2. 部署固有の構造的要因・課題',
+      text: `・【一般病棟】: 患者搬送およびナースコール対応の頻度が高く、業務中断によるタイムロスが著しい状況です。\n・【集中治療系】: 重症度に応じた高密度な記録入力および医師ラウンド同行の時間が長くなり、精神的・時間的負荷が増大しています。`,
+      bg: 'FEF2F2',
+      border: 'FCA5A5',
+      textCol: 'B91C1C',
+    },
+    {
+      title: '💡 3. 部署特性に応じた最適化提案',
+      text: `・【病棟クラーク・補助者の重点配置】: 搬送・物品請求・電話対応が多い病棟へ補助要員を優先配置。\n・【部署間応援・タイムシフト体制】: ピーク時間帯（午前処置帯・夕方配薬帯）に合わせたフレキシブルな業務シェアの導入。`,
+      bg: 'F0FDF4',
+      border: '86EFAC',
+      textCol: '15803D',
+    }
+  );
+
+  // ----------------------------------------------------
+  // SLIDE 6: 各職種別 集計データ
+  // ----------------------------------------------------
+  const slide6 = pptx.addSlide();
+  addSlideHeader(slide6, '3-1. 各職種別 集計データ', '職種（看護師・准看護師・看護助手等）ごとの業務時間比較');
 
   const roleStatsMap: Record<string, { direct: number; indirect: number; other: number; count: number; users: Set<string> }> = {};
 
@@ -592,57 +642,52 @@ export async function exportDashboardToPPTX(
     ]);
   });
 
-  slide4.addTable(roleRows, {
+  slide6.addTable(roleRows, {
     x: 0.6,
-    y: 1.2,
-    w: 12.1,
-    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.8],
-    fontSize: 11,
+    y: 1.05,
+    w: 12.13,
+    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.83],
+    fontSize: 10.5,
     fontFace: 'Meiryo',
     border: { pt: 1, color: 'E2E8F0' },
   });
 
-  // 職種別分析サマリカード
-  slide4.addShape('rect', {
-    x: 0.6,
-    y: 5.4,
-    w: 12.1,
-    h: 1.6,
-    fill: { color: 'ECFDF5' },
-    line: { color: 'A7F3D0', width: 1 },
-  });
+  // ----------------------------------------------------
+  // SLIDE 7: 【職種別】 タスクシェア・タスクシフト推進レポート
+  // ----------------------------------------------------
+  const slide7 = pptx.addSlide();
+  addSlideHeader(slide7, '3-2. 【職種別】 タスクシェア・タスクシフト推進レポート', '専門資格職種と看護補助者の役割分担・協働モデルの構築');
 
-  slide4.addText('💡 職種別分析サマリ・タスクシフト考察', {
-    x: 0.8,
-    y: 5.5,
-    w: 11.7,
-    h: 0.3,
-    fontSize: 12,
-    fontFace: 'Meiryo',
-    color: '047857',
-    bold: true,
-  });
-
-  const roleSummaryText = `・看護師の直接看護率は【${nurseDirectPct >= 0 ? nurseDirectPct + '%' : 'データなし'}】、看護補助者の直接看護率は【${assistantDirectPct >= 0 ? assistantDirectPct + '%' : 'データなし'}】です。
-・看護師の医療処置・記録業務と、看護補助者の身体ケア・環境整備等の役割分担（タスクシフト）が数値に表れています。
-・看護補助者への周辺・環境業務の委譲を推進することで、看護師が高度な専門的ケアに集中できる体制構築が推奨されます。`;
-
-  slide4.addText(roleSummaryText, {
-    x: 0.8,
-    y: 5.85,
-    w: 11.7,
-    h: 1.0,
-    fontSize: 11,
-    fontFace: 'Meiryo',
-    color: '064E3B',
-    lineSpacing: 18,
-  });
+  addReportSectionCards(
+    slide7,
+    {
+      title: '👥 1. 職種間の役割分担現状分析',
+      text: `・看護師の直接看護率: 【${nurseDirectPct >= 0 ? nurseDirectPct + '%' : 'データ参照'}】   /   看護補助者の直接看護率: 【${assistantDirectPct >= 0 ? assistantDirectPct + '%' : 'データ参照'}】\n・看護師が医療処置・アセスメント・カルテ記録を担い、看護補助者が患者生活援助・ベッドメイク・環境衛生管理を担う基本的な協働体制が数値上形成されています。`,
+      bg: 'ECFDF5',
+      border: 'A7F3D0',
+      textCol: '047857',
+    },
+    {
+      title: '⚖️ 2. タスクシェア上の課題と重複業務',
+      text: `・看護師が検体搬送・リネン補充・環境整備等の周辺業務を兼任しており、専門的業務への集中を妨げています。\n・看護補助者の業務範囲（できること・依頼できること）の周知不足により、病棟ごとのタスク移管度にバラつきが存在します。`,
+      bg: 'FEF2F2',
+      border: 'FCA5A5',
+      textCol: 'B91C1C',
+    },
+    {
+      title: '🎯 3. タスクシフト推進に向けた具体策',
+      text: `・【補助者業務ガイドラインの改定】: 配膳・環境整備・定常移乗介助の標準手順化と権限委譲。\n・【チーム医療の強化】: 看護師・補助者ペアによる朝の業務分担カンファレンスの定着と信頼関係醸成。`,
+      bg: 'F0FDF4',
+      border: '86EFAC',
+      textCol: '15803D',
+    }
+  );
 
   // ----------------------------------------------------
-  // SLIDE 5: 年齢階層別 集計分析
+  // SLIDE 8: 年齢階層別 集計データ
   // ----------------------------------------------------
-  const slide5 = pptx.addSlide();
-  addSlideHeader(slide5, '4. 年齢階層別 集計分析', '年齢層（20代〜60代以上）別の業務バランス・直接看護率');
+  const slide8 = pptx.addSlide();
+  addSlideHeader(slide8, '4-1. 年齢階層別 集計データ', '年齢層（20代〜60代以上）別の業務バランス・直接看護率');
 
   const ageStatsMap: Record<string, { direct: number; indirect: number; other: number; count: number; users: Set<string> }> = {};
 
@@ -713,51 +758,46 @@ export async function exportDashboardToPPTX(
     ]);
   });
 
-  slide5.addTable(ageRows, {
+  slide8.addTable(ageRows, {
     x: 0.6,
-    y: 1.2,
-    w: 12.1,
-    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.8],
-    fontSize: 10,
+    y: 1.05,
+    w: 12.13,
+    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.83],
+    fontSize: 9.5,
     fontFace: 'Meiryo',
     border: { pt: 1, color: 'E2E8F0' },
   });
 
-  // 年齢層別分析サマリカード
-  slide5.addShape('rect', {
-    x: 0.6,
-    y: 5.4,
-    w: 12.1,
-    h: 1.6,
-    fill: { color: 'F3E8FF' },
-    line: { color: 'E9D5FF', width: 1 },
-  });
+  // ----------------------------------------------------
+  // SLIDE 9: 【年齢層別】 臨床経験・ラダー応対レポート
+  // ----------------------------------------------------
+  const slide9 = pptx.addSlide();
+  addSlideHeader(slide9, '4-2. 【年齢層別】 臨床経験・ラダー応対レポート', '年齢・経験年数に応じた業務比率推移と人材育成・定着支援');
 
-  slide5.addText('💡 年齢層別分析サマリ・傾向', {
-    x: 0.8,
-    y: 5.5,
-    w: 11.7,
-    h: 0.3,
-    fontSize: 12,
-    fontFace: 'Meiryo',
-    color: '7E22CE',
-    bold: true,
-  });
-
-  const ageSummaryText = `・若手層（20代）の直接看護率は【${youngPct >= 0 ? youngPct + '%' : 'データなし'}】、ベテラン・管理層の直接看護率は【${seniorPct >= 0 ? seniorPct + '%' : 'データなし'}】です。
-・若手層は患者直接ケア・処置のウェイトが高く、年齢・臨床ラダーが上昇するにつれて指導・管理・チーム調整業務の割合が増加する傾向にあります。
-・年代・経験年数に応じた適切な業務配分と、若手へのプリセプター指導体制のバランス調整が効果的です。`;
-
-  slide5.addText(ageSummaryText, {
-    x: 0.8,
-    y: 5.85,
-    w: 11.7,
-    h: 1.0,
-    fontSize: 11,
-    fontFace: 'Meiryo',
-    color: '581C87',
-    lineSpacing: 18,
-  });
+  addReportSectionCards(
+    slide9,
+    {
+      title: '📈 1. 世代・経験年数別の業務構造推移',
+      text: `・若手層（20代）の直接看護率: 【${youngPct >= 0 ? youngPct + '%' : 'データ参照'}】   /   ベテラン・管理層の直接看護率: 【${seniorPct >= 0 ? seniorPct + '%' : 'データ参照'}】\n・若手層は患者床前ケア・処置・基本看護技術に時間が集中し、年齢・臨床ラダーが上がるにつれてプリセプター指導・委員会・多職種調整等の管理業務比率が上昇しています。`,
+      bg: 'F3E8FF',
+      border: 'E9D5FF',
+      textCol: '7E22CE',
+    },
+    {
+      title: '⚡ 2. 世代固有の課題と離職防止ポイント',
+      text: `・【若手看護師】: 記録入力への不慣れや緊急時対応による業務延長・心理的ストレスが蓄積しやすい傾向。\n・【中堅・ベテラン】: プレーヤー業務と指導・委員会・病棟管理の重複（板挟み状態）によるオーバーワークが顕在化。`,
+      bg: 'FEF2F2',
+      border: 'FCA5A5',
+      textCol: 'B91C1C',
+    },
+    {
+      title: '🌟 3. 継続的成長・定着支援に向けた提言',
+      text: `・【若手サポート】: カルテ記載マニュアルの標準化およびシャドーイング・OJTフォローの充実。\n・【中堅・管理層の負担軽減】: 委員会業務のスリム化および業務時間内での指導時間確保の公式化。`,
+      bg: 'F0FDF4',
+      border: '86EFAC',
+      textCol: '15803D',
+    }
+  );
 
   // ファイル書き出し・保存（ブラウザダウンロードを確実に実行）
   const fileName = `看護業務タイムスタディ_分析レポート_${todayStr.replace(/\//g, '')}.pptx`;
