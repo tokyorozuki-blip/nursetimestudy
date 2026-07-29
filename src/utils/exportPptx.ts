@@ -11,7 +11,7 @@ interface ExportFilterSummary {
 
 /**
  * タイムスタディレコードからPowerPoint (.pptx) 分析・考察付き総合レポートを自動生成してダウンロード
- * （データスライド ＋ 全体/病棟別/職種別/年齢別の詳細レポートスライドを完備）
+ * （指定スライド寸法: 幅 48.167 cm [18.963 インチ] × 高さ 27.093 cm [10.667 インチ] 16:9 大画面仕様）
  */
 export async function exportDashboardToPPTX(
   records: TimeStudyRecord[],
@@ -24,7 +24,13 @@ export async function exportDashboardToPPTX(
       : (pptxgen as any).default || pptxgen;
 
   const pptx = new PptxGenConstructor();
-  pptx.layout = 'LAYOUT_16x9'; // 幅 13.33 インチ × 高さ 7.5 インチ
+  
+  // ★ 幅 48.167 cm (18.963 インチ) × 高さ 27.093 cm (10.667 インチ) 16:9 大画面カスタムレイアウト
+  const SLIDE_WIDTH = 18.963;  // 48.167 cm
+  const SLIDE_HEIGHT = 10.667; // 27.093 cm
+
+  pptx.defineLayout({ name: 'CUSTOM_48CM_16x9', width: SLIDE_WIDTH, height: SLIDE_HEIGHT });
+  pptx.layout = 'CUSTOM_48CM_16x9';
 
   const todayStr = new Date().toLocaleDateString('ja-JP', {
     year: 'numeric',
@@ -66,44 +72,44 @@ export async function exportDashboardToPPTX(
   const otherPercent = Math.round((totalOtherMins / grandTotalMins) * 100);
 
   // ----------------------------------------------------
-  // ヘッダー生成共通関数 (高さ 0.8 インチ)
+  // ヘッダー生成共通関数 (幅 48.167 cm 対応)
   // ----------------------------------------------------
   const addSlideHeader = (slide: pptxgen.Slide, title: string, subtitle: string) => {
     slide.addShape('rect', {
       x: 0,
       y: 0,
       w: '100%',
-      h: 0.8,
+      h: 1.1,
       fill: { color: '0F172A' },
     });
 
     slide.addText(title, {
-      x: 0.6,
-      y: 0.1,
-      w: 8,
-      h: 0.38,
-      fontSize: 18,
+      x: 0.8,
+      y: 0.14,
+      w: 13.0,
+      h: 0.48,
+      fontSize: 23,
       fontFace: 'Meiryo',
       color: 'FFFFFF',
       bold: true,
     });
 
     slide.addText(subtitle, {
-      x: 0.6,
-      y: 0.48,
-      w: 8,
-      h: 0.25,
-      fontSize: 11,
+      x: 0.8,
+      y: 0.64,
+      w: 13.0,
+      h: 0.34,
+      fontSize: 13.5,
       fontFace: 'Meiryo',
       color: '94A3B8',
     });
 
     slide.addText(`作成日: ${todayStr}`, {
-      x: 9.5,
-      y: 0.22,
-      w: 3.2,
-      h: 0.35,
-      fontSize: 11,
+      x: 14.0,
+      y: 0.32,
+      w: 4.1,
+      h: 0.45,
+      fontSize: 13.5,
       fontFace: 'Meiryo',
       color: 'CBD5E1',
       align: 'right',
@@ -111,7 +117,7 @@ export async function exportDashboardToPPTX(
   };
 
   // ----------------------------------------------------
-  // 3ブロックレポート用カード描画ヘルパー関数
+  // 3ブロックレポート用カード描画ヘルパー関数 (幅 48.167 cm × 高さ 27.093 cm 大画面用)
   // ----------------------------------------------------
   const addReportSectionCards = (
     slide: pptxgen.Slide,
@@ -121,37 +127,37 @@ export async function exportDashboardToPPTX(
   ) => {
     const cards = [card1, card2, card3];
     cards.forEach((c, idx) => {
-      const topY = 1.05 + idx * 1.85;
+      const topY = 1.35 + idx * 2.85;
 
       slide.addShape('rect', {
-        x: 0.6,
+        x: 0.8,
         y: topY,
-        w: 12.13,
-        h: 1.65,
+        w: 17.36,
+        h: 2.55,
         fill: { color: c.bg },
-        line: { color: c.border, width: 1.5 },
+        line: { color: c.border, width: 1.8 },
       });
 
       slide.addText(c.title, {
-        x: 0.85,
-        y: topY + 0.12,
-        w: 11.6,
-        h: 0.3,
-        fontSize: 13,
+        x: 1.1,
+        y: topY + 0.18,
+        w: 16.7,
+        h: 0.45,
+        fontSize: 16,
         fontFace: 'Meiryo',
         color: c.textCol,
         bold: true,
       });
 
       slide.addText(c.text, {
-        x: 0.85,
-        y: topY + 0.45,
-        w: 11.6,
-        h: 1.05,
-        fontSize: 11,
+        x: 1.1,
+        y: topY + 0.68,
+        w: 16.7,
+        h: 1.7,
+        fontSize: 13,
         fontFace: 'Meiryo',
         color: '334155',
-        lineSpacing: 18,
+        lineSpacing: 22,
       });
     });
   };
@@ -170,52 +176,52 @@ export async function exportDashboardToPPTX(
   });
 
   slide1.addShape('rect', {
-    x: 0.8,
-    y: 1.6,
-    w: 0.15,
-    h: 3.2,
+    x: 1.2,
+    y: 2.2,
+    w: 0.22,
+    h: 4.8,
     fill: { color: '0284C7' },
   });
 
   slide1.addText('看護業務 タイムスタディ調査', {
-    x: 1.2,
-    y: 1.6,
-    w: 11,
-    h: 0.5,
-    fontSize: 22,
+    x: 1.7,
+    y: 2.2,
+    w: 16.0,
+    h: 0.8,
+    fontSize: 28,
     fontFace: 'Meiryo',
     color: '94A3B8',
     bold: true,
   });
 
   slide1.addText('分析結果 総合評価レポート', {
-    x: 1.2,
-    y: 2.2,
-    w: 11,
-    h: 1.1,
-    fontSize: 38,
+    x: 1.7,
+    y: 3.1,
+    w: 16.0,
+    h: 1.6,
+    fontSize: 52,
     fontFace: 'Meiryo',
     color: 'FFFFFF',
     bold: true,
   });
 
-  slide1.addText('全体・各病棟別・各職種別・年齢層別 調査分析＆改善提案報告書', {
-    x: 1.2,
-    y: 3.5,
-    w: 11,
-    h: 0.5,
-    fontSize: 17,
+  slide1.addText('全体・各病棟別・各職種別・年齢層別 調査分析＆改善提案報告書 (幅 48.167cm × 高さ 27.093cm)', {
+    x: 1.7,
+    y: 4.9,
+    w: 16.0,
+    h: 0.8,
+    fontSize: 21,
     fontFace: 'Meiryo',
     color: '38BDF8',
   });
 
   slide1.addShape('rect', {
-    x: 1.2,
-    y: 4.5,
-    w: 10.8,
-    h: 1.6,
+    x: 1.7,
+    y: 6.4,
+    w: 15.5,
+    h: 2.3,
     fill: { color: '1E293B' },
-    line: { color: '334155', width: 1 },
+    line: { color: '334155', width: 1.5 },
   });
 
   const filterText = filters
@@ -225,133 +231,134 @@ export async function exportDashboardToPPTX(
   slide1.addText(
     `出力日時: ${todayStr}   |   対象提出データ数: ${records.length}件   |   対象職員数: ${totalUserCount}名\n${filterText}`,
     {
-      x: 1.5,
-      y: 4.7,
-      w: 10.2,
-      h: 1.2,
-      fontSize: 13,
+      x: 2.1,
+      y: 6.7,
+      w: 14.7,
+      h: 1.7,
+      fontSize: 16,
       fontFace: 'Meiryo',
       color: 'CBD5E1',
-      lineSpacing: 22,
+      lineSpacing: 28,
     }
   );
 
   // ----------------------------------------------------
-  // SLIDE 2: 全体集計データ
+  // SLIDE 2: 全体集計データ (大画面仕様)
   // ----------------------------------------------------
   const slide2 = pptx.addSlide();
   addSlideHeader(slide2, '1-1. 全体集計データ', '全対象データの業務割合および時間比較');
 
+  // KPI 3カード
   slide2.addShape('rect', {
-    x: 0.6,
-    y: 1.0,
-    w: 3.7,
-    h: 1.25,
+    x: 0.8,
+    y: 1.45,
+    w: 5.5,
+    h: 1.8,
     fill: { color: 'F0F9FF' },
     line: { color: 'BAE6FD', width: 2 },
   });
   slide2.addText('直接看護業務', {
-    x: 0.8,
-    y: 1.08,
-    w: 3.3,
-    h: 0.25,
-    fontSize: 12,
+    x: 1.1,
+    y: 1.6,
+    w: 4.9,
+    h: 0.35,
+    fontSize: 15,
     fontFace: 'Meiryo',
     color: '0369A1',
     bold: true,
   });
   slide2.addText(`${directPercent}%`, {
-    x: 0.8,
-    y: 1.32,
-    w: 3.3,
-    h: 0.5,
-    fontSize: 28,
+    x: 1.1,
+    y: 1.98,
+    w: 4.9,
+    h: 0.7,
+    fontSize: 40,
     fontFace: 'Meiryo',
     color: '0284C7',
     bold: true,
   });
   slide2.addText(`合計: ${(totalDirectMins / 60).toFixed(1)} 時間`, {
-    x: 0.8,
-    y: 1.88,
-    w: 3.3,
-    h: 0.25,
-    fontSize: 10.5,
+    x: 1.1,
+    y: 2.72,
+    w: 4.9,
+    h: 0.35,
+    fontSize: 13.5,
     fontFace: 'Meiryo',
     color: '0C4A6E',
   });
 
   slide2.addShape('rect', {
-    x: 4.8,
-    y: 1.0,
-    w: 3.7,
-    h: 1.25,
+    x: 6.73,
+    y: 1.45,
+    w: 5.5,
+    h: 1.8,
     fill: { color: 'ECFDF5' },
     line: { color: 'A7F3D0', width: 2 },
   });
   slide2.addText('間接看護業務', {
-    x: 5.0,
-    y: 1.08,
-    w: 3.3,
-    h: 0.25,
-    fontSize: 12,
+    x: 7.03,
+    y: 1.6,
+    w: 4.9,
+    h: 0.35,
+    fontSize: 15,
     fontFace: 'Meiryo',
     color: '047857',
     bold: true,
   });
   slide2.addText(`${indirectPercent}%`, {
-    x: 5.0,
-    y: 1.32,
-    w: 3.3,
-    h: 0.5,
-    fontSize: 28,
+    x: 7.03,
+    y: 1.98,
+    w: 4.9,
+    h: 0.7,
+    fontSize: 40,
     fontFace: 'Meiryo',
     color: '10B981',
     bold: true,
   });
   slide2.addText(`合計: ${(totalIndirectMins / 60).toFixed(1)} 時間`, {
-    x: 5.0,
-    y: 1.88,
-    w: 3.3,
-    h: 0.25,
-    fontSize: 10.5,
+    x: 7.03,
+    y: 2.72,
+    w: 4.9,
+    h: 0.35,
+    fontSize: 13.5,
     fontFace: 'Meiryo',
     color: '064E3B',
   });
 
   slide2.addShape('rect', {
-    x: 9.0,
-    y: 1.0,
-    w: 3.7,
-    h: 1.25,
+    x: 12.66,
+    y: 1.45,
+    w: 5.5,
+    h: 1.8,
     fill: { color: 'F3E8FF' },
     line: { color: 'E9D5FF', width: 2 },
   });
   slide2.addText('その他・管理業務', {
-    x: 9.2,
-    y: 1.08,
-    w: 3.3,
-    h: 0.25,
-    fontSize: 12,
+    x: 12.96,
+    y: 1.6,
+    w: 4.9,
+    h: 0.35,
+    fontSize: 15,
     fontFace: 'Meiryo',
     color: '7E22CE',
     bold: true,
   });
   slide2.addText(`${otherPercent}%`, {
-    x: 9.2,
-    y: 1.32,
-    w: 3.3,
-    h: 0.5,
-    fontSize: 28,
+    x: 12.96,
+    y: 1.98,
+    w: 4.9,
+    h: 0.7,
+    fontSize: 40,
     fontFace: 'Meiryo',
     color: 'A855F7',
     bold: true,
   });
   slide2.addText(`合計: ${(totalOtherMins / 60).toFixed(1)} 時間`, {
-    x: 9.2,
-    y: 1.88,
-    w: 3.3,
-    h: 0.25,
-    fontSize: 10.5,
+    x: 12.96,
+    y: 2.72,
+    w: 4.9,
+    h: 0.35,
+    fontSize: 13.5,
     fontFace: 'Meiryo',
     color: '581C87',
   });
@@ -390,12 +397,13 @@ export async function exportDashboardToPPTX(
   ];
 
   slide2.addTable(overallRows, {
-    x: 0.6,
-    y: 2.45,
-    w: 12.13,
-    colW: [2.5, 1.8, 1.8, 6.03],
-    fontSize: 10,
+    x: 0.8,
+    y: 3.65,
+    w: 17.36,
+    colW: [3.8, 2.5, 2.5, 8.56],
+    fontSize: 13,
     fontFace: 'Meiryo',
+    margin: [4, 6, 4, 6],
     border: { pt: 1, color: 'CBD5E1' },
   });
 
@@ -431,7 +439,7 @@ export async function exportDashboardToPPTX(
   );
 
   // ----------------------------------------------------
-  // SLIDE 4: 各病棟（部署）別 集計データ
+  // SLIDE 4: 各病棟（部署）別 集計データ (幅 48.167 cm 対応の左右2列配置)
   // ----------------------------------------------------
   const slide4 = pptx.addSlide();
   addSlideHeader(slide4, '2-1. 各病棟（部署）別 集計データ', '部署ごとの業務時間および直接看護割合の一覧比較 (全18部署)');
@@ -467,7 +475,7 @@ export async function exportDashboardToPPTX(
   });
 
   const activeDepts = DEPARTMENTS.filter((d) => deptStatsMap[d] && deptStatsMap[d].count > 0);
-  const displayDepts = activeDepts.length > 0 ? activeDepts : DEPARTMENTS.slice(0, 10);
+  const displayDepts = activeDepts.length > 0 ? activeDepts : DEPARTMENTS;
 
   let topDept = '';
   let topDeptPct = -1;
@@ -526,23 +534,27 @@ export async function exportDashboardToPPTX(
     return rows;
   };
 
+  // 左側テーブル (x: 0.8, w: 8.5)
   slide4.addTable(createDeptTableRows(leftDepts), {
-    x: 0.6,
-    y: 0.95,
-    w: 5.9,
-    colW: [1.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
-    fontSize: 9,
+    x: 0.8,
+    y: 1.45,
+    w: 8.5,
+    colW: [2.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    fontSize: 12,
     fontFace: 'Meiryo',
+    margin: [4, 5, 4, 5],
     border: { pt: 1, color: 'E2E8F0' },
   });
 
+  // 右側テーブル (x: 9.66, w: 8.5)
   slide4.addTable(createDeptTableRows(rightDepts), {
-    x: 6.8,
-    y: 0.95,
-    w: 5.9,
-    colW: [1.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7],
-    fontSize: 9,
+    x: 9.66,
+    y: 1.45,
+    w: 8.5,
+    colW: [2.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    fontSize: 12,
     fontFace: 'Meiryo',
+    margin: [4, 5, 4, 5],
     border: { pt: 1, color: 'E2E8F0' },
   });
 
@@ -643,12 +655,13 @@ export async function exportDashboardToPPTX(
   });
 
   slide6.addTable(roleRows, {
-    x: 0.6,
-    y: 1.05,
-    w: 12.13,
-    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.83],
-    fontSize: 10.5,
+    x: 0.8,
+    y: 1.45,
+    w: 17.36,
+    colW: [3.8, 2.0, 2.3, 2.3, 2.3, 2.3, 2.36],
+    fontSize: 13,
     fontFace: 'Meiryo',
+    margin: [4, 6, 4, 6],
     border: { pt: 1, color: 'E2E8F0' },
   });
 
@@ -759,12 +772,13 @@ export async function exportDashboardToPPTX(
   });
 
   slide8.addTable(ageRows, {
-    x: 0.6,
-    y: 1.05,
-    w: 12.13,
-    colW: [2.5, 1.2, 1.6, 1.6, 1.6, 1.8, 1.83],
-    fontSize: 9.5,
+    x: 0.8,
+    y: 1.45,
+    w: 17.36,
+    colW: [3.8, 2.0, 2.3, 2.3, 2.3, 2.3, 2.36],
+    fontSize: 12.5,
     fontFace: 'Meiryo',
+    margin: [4, 5, 4, 5],
     border: { pt: 1, color: 'E2E8F0' },
   });
 
