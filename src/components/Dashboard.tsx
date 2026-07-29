@@ -62,6 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [dedupeMode, setDedupeMode] = useState<'latest' | 'all'>('latest');
   const [showSummaryModal, setShowSummaryModal] = useState<boolean>(false);
   const [copiedText, setCopiedText] = useState<boolean>(false);
+  const [isExportingPptx, setIsExportingPptx] = useState<boolean>(false);
 
   // データ内に存在する全調査対象日を抽出（降順）
   const availableDates = useMemo(() => {
@@ -389,18 +390,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {/* 📊 PowerPoint (.pptx) 出力ボタン */}
           <button
-            className="btn-dash bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer border-0 flex items-center gap-1.5"
-            onClick={() =>
-              exportDashboardToPPTX(filteredRecords, {
-                selectedDepartment,
-                selectedRole,
-                selectedAgeGroup,
-                selectedDate,
-              })
-            }
+            type="button"
+            disabled={isExportingPptx}
+            className={`btn-dash font-extrabold shadow-sm active:scale-95 transition-all border-0 flex items-center gap-1.5 cursor-pointer text-white ${
+              isExportingPptx
+                ? 'bg-amber-400 opacity-80 cursor-wait'
+                : 'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700'
+            }`}
+            onClick={async () => {
+              setIsExportingPptx(true);
+              try {
+                await exportDashboardToPPTX(filteredRecords, {
+                  selectedDepartment,
+                  selectedRole,
+                  selectedAgeGroup,
+                  selectedDate,
+                });
+              } catch (err: any) {
+                console.error('PPTX export error:', err);
+                alert(`PowerPointの出力中にエラーが発生しました: ${err?.message || err}`);
+              } finally {
+                setTimeout(() => setIsExportingPptx(false), 500);
+              }
+            }}
           >
-            <Presentation className="w-4 h-4 text-amber-100" />
-            <span>PowerPoint出力 (.pptx)</span>
+            <Presentation className={`w-4 h-4 text-amber-100 ${isExportingPptx ? 'animate-spin' : ''}`} />
+            <span>{isExportingPptx ? 'PowerPoint作成中...' : 'PowerPoint出力 (.pptx)'}</span>
           </button>
 
           <button className="btn-dash btn-print" onClick={() => window.print()}>

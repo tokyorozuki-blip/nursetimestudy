@@ -13,11 +13,17 @@ interface ExportFilterSummary {
  * タイムスタディレコードからPowerPoint (.pptx) 分析レポートを自動生成してダウンロード
  * （各結果スライドに動的サマリ・考察テキストカードを追加）
  */
-export function exportDashboardToPPTX(
+export async function exportDashboardToPPTX(
   records: TimeStudyRecord[],
   filters?: ExportFilterSummary
 ) {
-  const pptx = new pptxgen();
+  // Vite / ESM 環境での互換性を保つためコンストラクタを安全に取得
+  const PptxGenConstructor =
+    typeof pptxgen === 'function'
+      ? pptxgen
+      : (pptxgen as any).default || pptxgen;
+
+  const pptx = new PptxGenConstructor();
   pptx.layout = 'LAYOUT_16x9';
 
   const todayStr = new Date().toLocaleDateString('ja-JP', {
@@ -754,7 +760,21 @@ export function exportDashboardToPPTX(
     lineSpacing: 18,
   });
 
-  // ファイル書き出し・保存
+  // ファイル書き出し・保存（ブラウザダウンロードを確実に実行）
   const fileName = `看護業務タイムスタディ_分析レポート_${todayStr.replace(/\//g, '')}.pptx`;
-  pptx.writeFile({ fileName });
+
+  try {
+    const blob = (await pptx.write({ outputType: 'blob' })) as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (err) {
+    console.warn('Blob export fallback, trying writeFile:', err);
+    await pptx.writeFile({ fileName });
+  }
 }
