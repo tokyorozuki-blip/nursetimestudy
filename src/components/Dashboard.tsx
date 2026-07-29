@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { TimeStudyRecord } from '../types';
 import { DEPARTMENTS, AGE_GROUPS, PRESET_TASKS } from '../constants';
 import { exportRecordsToCSV } from '../utils/exportCsv';
+import { exportDashboardToPPTX } from '../utils/exportPptx';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -24,6 +25,7 @@ import {
   Search,
   BarChart2,
   FileText,
+  Presentation,
   X,
   Check,
 } from 'lucide-react';
@@ -383,6 +385,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <button className="btn-dash btn-csv" onClick={() => exportRecordsToCSV(filteredRecords)}>
             <Download className="w-4 h-4" />
             <span>CSV出力</span>
+          </button>
+
+          {/* 📊 PowerPoint (.pptx) 出力ボタン */}
+          <button
+            className="btn-dash bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer border-0 flex items-center gap-1.5"
+            onClick={() =>
+              exportDashboardToPPTX(filteredRecords, {
+                selectedDepartment,
+                selectedRole,
+                selectedAgeGroup,
+                selectedDate,
+              })
+            }
+          >
+            <Presentation className="w-4 h-4 text-amber-100" />
+            <span>PowerPoint出力 (.pptx)</span>
           </button>
 
           <button className="btn-dash btn-print" onClick={() => window.print()}>
