@@ -103,11 +103,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const fetched = await fetchUsersFromVercel();
       const userMap = new Map<string, UserProfile>();
 
-      // 1. 登録済みユーザーリストを追加
+      // 各職員IDに対応する最古の提出日時マップ（登録日時の自動フォールバック補完用）
+      const firstSubmitMap = new Map<string, string>();
+      records.forEach((r) => {
+        if (r.user && r.user.staffId && r.submittedAt) {
+          const prev = firstSubmitMap.get(r.user.staffId);
+          if (!prev || r.submittedAt < prev) {
+            firstSubmitMap.set(r.user.staffId, r.submittedAt);
+          }
+        }
+      });
+
+      // 1. 登録済みユーザーリストを追加 (createdAt が無い場合は提出日時から補完)
       if (Array.isArray(fetched)) {
         fetched.forEach((u) => {
           if (u && u.staffId && u.staffId.trim() !== '' && u.name && u.name.trim() !== '') {
-            userMap.set(u.staffId, u);
+            const fallbackCreated = firstSubmitMap.get(u.staffId) || u.createdAt;
+            userMap.set(u.staffId, {
+              ...u,
+              createdAt: u.createdAt || fallbackCreated,
+            });
           }
         });
       }
@@ -120,17 +135,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           r.user.staffId.trim() !== '' &&
           r.user.name &&
           r.user.name.trim() !== '' &&
-          r.user.name !== '名前未設定' &&
-          !userMap.has(r.user.staffId)
+          r.user.name !== '名前未設定'
         ) {
-          userMap.set(r.user.staffId, {
-            staffId: r.user.staffId,
-            name: r.user.name,
-            role: r.user.role || '看護師',
-            department: r.user.department || 'ICU',
-            ageGroup: r.user.ageGroup || '30〜34歳',
-            deviceId: r.user.deviceId || '',
-          });
+          const existing = userMap.get(r.user.staffId);
+          const createdDate =
+            existing?.createdAt ||
+            r.user.createdAt ||
+            firstSubmitMap.get(r.user.staffId) ||
+            r.submittedAt;
+
+          if (!existing) {
+            userMap.set(r.user.staffId, {
+              staffId: r.user.staffId,
+              name: r.user.name,
+              role: r.user.role || '看護師',
+              department: r.user.department || 'ICU',
+              ageGroup: r.user.ageGroup || '30〜34歳',
+              deviceId: r.user.deviceId || '',
+              createdAt: createdDate,
+            });
+          } else if (!existing.createdAt && createdDate) {
+            userMap.set(r.user.staffId, {
+              ...existing,
+              createdAt: createdDate,
+            });
+          }
         }
       });
 

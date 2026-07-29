@@ -226,6 +226,14 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
     }
     setErrorMsg('');
 
+    const nowStr = new Date().toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
     const newUserProfile: UserProfile = {
       staffId: staffId.trim(),
       name: name.trim(),
@@ -233,6 +241,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
       department,
       ageGroup,
       deviceId: initialUser?.deviceId,
+      createdAt: initialUser?.createdAt || nowStr,
     };
 
     onSave(newUserProfile, targetDate, shiftType, customStartTime, customEndTime);
@@ -939,6 +948,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   department,
                   ageGroup,
                   deviceId: initialUser?.deviceId,
+                  createdAt: editTargetUser?.createdAt || initialUser?.createdAt,
                 };
                 saveUserProfile(updatedProfile);
                 setSuccessMsg(`職員ID: ${editStaffId} の登録情報を更新しました。`);
