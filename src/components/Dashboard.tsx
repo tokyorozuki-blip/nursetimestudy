@@ -407,7 +407,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   selectedDate,
                 });
               } catch (err: any) {
-                console.error('PPTX export error:', err);
                 alert(`PowerPointの出力中にエラーが発生しました: ${err?.message || err}`);
               } finally {
                 setTimeout(() => setIsExportingPptx(false), 500);

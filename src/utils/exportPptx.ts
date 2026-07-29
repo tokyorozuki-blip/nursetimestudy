@@ -826,8 +826,7 @@ export async function exportDashboardToPPTX(
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-  } catch (err) {
-    console.warn('Blob export fallback, trying writeFile:', err);
+  } catch (_err) {
     await pptx.writeFile({ fileName });
   }
 }
