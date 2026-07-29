@@ -300,7 +300,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
               )}
             </div>
 
-            <div className="flex flex-col space-y-4 w-full pt-3">
+            <div className="flex flex-col items-center space-y-4 w-full pt-3">
               {/* 🟢 1. 新規登録 */}
               <button
                 type="button"
@@ -308,7 +308,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   resetFormState();
                   setStep('id');
                 }}
-                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[640px] mx-auto h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-emerald-600 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -329,7 +329,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   resetFormState();
                   setStep('id');
                 }}
-                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[640px] mx-auto h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-sky-600 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -351,7 +351,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setSuccessMsg('');
                   setStep('edit_id');
                 }}
-                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-slate-300 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[640px] mx-auto h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-slate-300 bg-slate-50/90 hover:bg-slate-100 text-slate-900 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-slate-700 text-white shrink-0 flex items-center justify-center shadow-sm">
@@ -372,7 +372,7 @@ export const UserSetupModal: React.FC<UserSetupModalProps> = ({
                   setErrorMsg('');
                   setStep('admin');
                 }}
-                className="w-full max-w-[1000px] h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-rose-300 bg-rose-50/90 hover:bg-rose-100 text-rose-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
+                className="w-full max-w-[640px] mx-auto h-[88px] md:h-[96px] px-6 md:px-8 py-4 rounded-2xl border-2 border-rose-300 bg-rose-50/90 hover:bg-rose-100 text-rose-950 flex items-center justify-between gap-4 text-left transition-all duration-150 active:scale-98 shadow-sm group cursor-pointer shrink-0"
               >
                 <div className="flex items-center gap-4.5 min-w-0">
                   <div className="w-13 h-13 md:w-14 md:h-14 rounded-2xl bg-rose-600 text-white shrink-0 flex items-center justify-center shadow-sm">
