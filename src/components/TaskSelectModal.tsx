@@ -3,19 +3,23 @@ import { TimeSlot, TaskItem, JobRole } from '../types';
 import { Check, X, Clock, AlertCircle } from 'lucide-react';
 
 interface TaskSelectModalProps {
-  slot: TimeSlot | null;
+  slot?: TimeSlot | null;
+  batchInfo?: { title: string; slotIds: string[]; initialTaskIds: string[] } | null;
   tasks: TaskItem[];
   userRole?: JobRole;
-  onSave: (slotId: string, taskIds: string[]) => void;
+  onSave?: (slotId: string, taskIds: string[]) => void;
+  onSaveBatch?: (slotIds: string[], taskIds: string[]) => void;
   onClose: () => void;
   onOpenEditMaster?: () => void;
 }
 
 export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
   slot,
+  batchInfo,
   tasks,
   userRole = '看護師',
   onSave,
+  onSaveBatch,
   onClose,
   onOpenEditMaster,
 }) => {
@@ -23,13 +27,18 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
   const [warningMsg, setWarningMsg] = useState<string>('');
 
   useEffect(() => {
-    if (slot) {
+    if (batchInfo) {
+      setSelectedIds([...batchInfo.initialTaskIds]);
+      setWarningMsg('');
+    } else if (slot) {
       setSelectedIds([...slot.selectedTaskIds]);
       setWarningMsg('');
     }
-  }, [slot]);
+  }, [slot, batchInfo]);
 
-  if (!slot) return null;
+  if (!slot && !batchInfo) return null;
+
+  const titleText = batchInfo ? batchInfo.title : slot ? `${slot.startTime} - ${slot.endTime}` : '';
 
   const toggleTask = (taskId: string) => {
     setWarningMsg('');
@@ -37,7 +46,7 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
       setSelectedIds(selectedIds.filter((id) => id !== taskId));
     } else {
       if (selectedIds.length >= 3) {
-        setWarningMsg('15分の枠で選択できる業務は最大3つまでです。');
+        setWarningMsg('選択できる業務は最大3つまでです。');
         return;
       }
       setSelectedIds([...selectedIds, taskId]);
@@ -45,7 +54,11 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
   };
 
   const handleConfirm = () => {
-    onSave(slot.id, selectedIds);
+    if (batchInfo && onSaveBatch) {
+      onSaveBatch(batchInfo.slotIds, selectedIds);
+    } else if (slot && onSave) {
+      onSave(slot.id, selectedIds);
+    }
   };
 
   // 職種に応じた定型業務の絞り込み
@@ -70,7 +83,7 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
 
           <div className="flow-title">
             <Clock className="w-4 h-4 text-sky-600 inline-icon" />
-            <span>{slot.startTime} - {slot.endTime}</span>
+            <span>{titleText}</span>
           </div>
 
           <button className="btn-flow-confirm" onClick={handleConfirm}>
@@ -88,7 +101,9 @@ export const TaskSelectModal: React.FC<TaskSelectModalProps> = ({
               {userRole}
             </span>
             <span className="text-xs text-slate-500 font-bold">
-              あてはまる業務を選択してください（複数選択可）
+              {batchInfo
+                ? '【1時間一括設定】この時間帯の全コマへまとめて反映されます'
+                : 'あてはまる業務を選択してください（複数選択可）'}
             </span>
           </div>
         </div>

@@ -65,14 +65,27 @@ export interface UserProfile {
   updatedAt?: string; // 最終更新日時
 }
 
-// 15分タイムスロット
+// 5分タイムスロット
 export interface TimeSlot {
   id: string; // 例: "08:30"
   startTime: string; // 例: "08:30"
-  endTime: string; // 例: "08:45"
+  endTime: string; // 例: "08:35"
   isOvertime?: boolean;
   overtimeType?: 'early' | 'late';
   selectedTaskIds: string[]; // 最大3つの定型業務ID
+}
+
+/**
+ * スロットの開始時刻と終了時刻から分数（通常5分）を算出するユーティリティ
+ */
+export function getSlotDurationMinutes(slot: TimeSlot): number {
+  if (!slot.startTime || !slot.endTime) return 5;
+  const [sH, sM] = slot.startTime.split(':').map(Number);
+  const [eH, eM] = slot.endTime.split(':').map(Number);
+  if (isNaN(sH) || isNaN(sM) || isNaN(eH) || isNaN(eM)) return 5;
+  let diff = (eH * 60 + eM) - (sH * 60 + sM);
+  if (diff <= 0) diff += 24 * 60;
+  return diff > 0 && diff <= 120 ? diff : 5;
 }
 
 // 提出済みタイムスタディデータモデル

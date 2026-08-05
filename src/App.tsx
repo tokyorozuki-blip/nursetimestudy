@@ -50,6 +50,11 @@ export function App() {
   // タイムスタディスロット
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [activeSlot, setActiveSlot] = useState<TimeSlot | null>(null);
+  const [activeBatchGroup, setActiveBatchGroup] = useState<{
+    title: string;
+    slotIds: string[];
+    initialTaskIds: string[];
+  } | null>(null);
   const [isDraftSaved, setIsDraftSaved] = useState<boolean>(false);
 
   // 本日の提出完了状態
@@ -223,6 +228,18 @@ export function App() {
     setActiveSlot(null);
   };
 
+  // 1時間グループ（複数コマ）の一括業務保存
+  const handleSaveBatchSlotTasks = (slotIds: string[], taskIds: string[]) => {
+    const slotIdSet = new Set(slotIds);
+    const updated = slots.map((s) =>
+      slotIdSet.has(s.id) ? { ...s, selectedTaskIds: taskIds } : s
+    );
+    setSlots(updated);
+    saveDraftSlots(updated);
+    setIsDraftSaved(true);
+    setActiveBatchGroup(null);
+  };
+
   // 時間帯（スロット）の削除処理
   const handleDeleteSlot = (slotId: string) => {
     const updated = slots.filter((s) => s.id !== slotId);
@@ -283,7 +300,7 @@ export function App() {
   const handleAddEarlySlot = () => {
     const firstSlot = slots[0];
     const [h, m] = firstSlot.startTime.split(':').map(Number);
-    let totalM = h * 60 + m - 15;
+    let totalM = h * 60 + m - 5;
     if (totalM < 0) totalM += 1440;
 
     const startH = String(Math.floor(totalM / 60)).padStart(2, '0');
@@ -308,7 +325,7 @@ export function App() {
   const handleAddLateSlot = () => {
     const lastSlot = slots[slots.length - 1];
     const [h, m] = lastSlot.endTime.split(':').map(Number);
-    const totalM = h * 60 + m + 15;
+    const totalM = h * 60 + m + 5;
 
     const endH = String(Math.floor(totalM / 60)).padStart(2, '0');
     const endM = String(totalM % 60).padStart(2, '0');
@@ -456,6 +473,7 @@ export function App() {
             customEndTime={customEndTime}
             onChangeShiftAndSlots={handleChangeShiftAndSlots}
             onSlotClick={(slot) => setActiveSlot(slot)}
+            onBatchSlotClick={(batchInfo) => setActiveBatchGroup(batchInfo)}
             onAddEarlySlot={handleAddEarlySlot}
             onAddLateSlot={handleAddLateSlot}
             onDeleteSlot={handleDeleteSlot}
@@ -486,14 +504,19 @@ export function App() {
         />
       )}
 
-      {/* 上部固定ヘッダー付き業務入力フロー画面 */}
-      {activeSlot && (
+      {/* 上部固定ヘッダー付き業務入力フロー画面 (単一コマ / 1時間一括) */}
+      {(activeSlot || activeBatchGroup) && (
         <TaskSelectModal
           slot={activeSlot}
+          batchInfo={activeBatchGroup}
           tasks={tasks}
           userRole={user?.role || '看護師'}
           onSave={handleSaveSlotTasks}
-          onClose={() => setActiveSlot(null)}
+          onSaveBatch={handleSaveBatchSlotTasks}
+          onClose={() => {
+            setActiveSlot(null);
+            setActiveBatchGroup(null);
+          }}
         />
       )}
 

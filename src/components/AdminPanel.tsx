@@ -287,8 +287,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingTargets, setEditingTargets] = useState<Record<string, number>>({});
   const [masterRoleTab, setMasterRoleTab] = useState<'ALL' | JobRole>('ALL');
 
-  // データ削除用日付指定
-  const todayStr = new Date().toISOString().split('T')[0];
+  // データ削除用日付指定 (JSTローカル本日日付をデフォルトセット)
+  const getTodayJST = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const todayStr = getTodayJST();
   const [deleteTargetDate, setDeleteTargetDate] = useState<string>(todayStr);
 
   // 削除の2段階二重確認モーダル状態
@@ -393,7 +400,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <ShieldCheck className="w-5 h-5 text-purple-700" />
           </div>
           <div>
-            <h2 className="admin-title">看護部 管理者専用コンソール</h2>
+            <h2 className="admin-title">看護部 管理者専用画面</h2>
             <p className="admin-sub">パスワード認証済み (okasaikango)</p>
           </div>
         </div>
@@ -1121,10 +1128,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <p>選択した特定の調査対象日の提出データのみをまとめて削除します。</p>
 
               <div className="form-group my-3 w-full">
-                <label className="form-label text-xs">削除対象日を選択</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="form-label text-xs">削除対象日を選択</label>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTargetDate(todayStr)}
+                    className="text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded border border-amber-300 transition-colors cursor-pointer"
+                  >
+                    本日 ({todayStr}) に設定
+                  </button>
+                </div>
                 <input
                   type="date"
-                  className="form-input"
+                  className="form-input text-base font-bold text-center"
                   value={deleteTargetDate}
                   onChange={(e) => setDeleteTargetDate(e.target.value)}
                 />

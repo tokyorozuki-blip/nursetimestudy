@@ -9,6 +9,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Folder,
+  FolderOpen,
   Sparkles,
   Trash2,
   Settings2,
@@ -17,6 +21,52 @@ import {
   Check,
   RotateCcw,
 } from 'lucide-react';
+
+export interface HourGroup {
+  hourKey: string;
+  hourLabel: string;
+  slots: TimeSlot[];
+  filledCount: number;
+  totalCount: number;
+  uniqueTaskIds: string[];
+}
+
+function groupSlotsByHour(slots: TimeSlot[]): HourGroup[] {
+  const map = new Map<string, TimeSlot[]>();
+
+  slots.forEach((s) => {
+    const hour = s.startTime.split(':')[0] || '00';
+    const isNext = s.id.includes('-next');
+    const key = `${hour}${isNext ? '-next' : ''}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(s);
+  });
+
+  const groups: HourGroup[] = [];
+  map.forEach((hourSlots, key) => {
+    const first = hourSlots[0];
+    const last = hourSlots[hourSlots.length - 1];
+
+    const startH = first.startTime.split(':')[0];
+    const isNext = key.includes('-next');
+    const label = `${isNext ? '翌日 ' : ''}${startH}:00 〜 ${last.endTime}`;
+
+    const filledCount = hourSlots.filter((s) => s.selectedTaskIds.length > 0).length;
+    const taskSet = new Set<string>();
+    hourSlots.forEach((s) => s.selectedTaskIds.forEach((id) => taskSet.add(id)));
+
+    groups.push({
+      hourKey: key,
+      hourLabel: label,
+      slots: hourSlots,
+      filledCount,
+      totalCount: hourSlots.length,
+      uniqueTaskIds: Array.from(taskSet),
+    });
+  });
+
+  return groups;
+}
 
 interface TimelineProps {
   slots: TimeSlot[];
@@ -29,6 +79,11 @@ interface TimelineProps {
     customEnd?: string
   ) => void;
   onSlotClick: (slot: TimeSlot) => void;
+  onBatchSlotClick?: (batchInfo: {
+    title: string;
+    slotIds: string[];
+    initialTaskIds: string[];
+  }) => void;
   onAddEarlySlot: () => void;
   onAddLateSlot: () => void;
   onDeleteSlot?: (slotId: string) => void;
@@ -48,6 +103,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   customEndTime = '18:00',
   onChangeShiftAndSlots,
   onSlotClick,
+  onBatchSlotClick,
   onAddEarlySlot,
   onAddLateSlot,
   onDeleteSlot,
@@ -60,6 +116,31 @@ export const Timeline: React.FC<TimelineProps> = ({
   user,
 }) => {
   const taskMap = new Map(PRESET_TASKS.map((t) => [t.id, t]));
+
+  // 1時間単位のグループ折りたたみ／展開ステート
+  // expandedHourKeys[hourKey] = true の場合、該当1時間グループの5分スロットを詳細表示
+  const [expandedHourKeys, setExpandedHourKeys] = useState<Record<string, boolean>>({});
+
+  const hourGroups = groupSlotsByHour(slots);
+
+  const toggleHourExpand = (hourKey: string) => {
+    setExpandedHourKeys((prev) => ({
+      ...prev,
+      [hourKey]: !prev[hourKey],
+    }));
+  };
+
+  const expandAllHours = () => {
+    const next: Record<string, boolean> = {};
+    hourGroups.forEach((g) => {
+      next[g.hourKey] = true;
+    });
+    setExpandedHourKeys(next);
+  };
+
+  const collapseAllHours = () => {
+    setExpandedHourKeys({});
+  };
 
   // 時間枠調整パネルの開閉ステート
   const [showShiftConfig, setShowShiftConfig] = useState<boolean>(false);
@@ -105,7 +186,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           <div className="status-title-row">
             <h2 className="status-heading">
               <Clock className="w-5 h-5 text-sky-600 inline-icon" />
-              15分枠 タイムスタディ入力
+              5分枠 タイムスタディ入力
             </h2>
             {isSubmitted ? (
               <span className="bg-emerald-600 text-white font-extrabold px-3 py-1 rounded-full text-xs flex items-center gap-1.5 shadow-sm">
@@ -127,7 +208,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           <p className="status-subtext">
             {isSubmitted
               ? '調査データの提出が完了しています。修正する場合は「修正をする」ボタンを押してください。'
-              : '各15分のコマをタップして、定型業務を選択してください（1コマ最大3つ）。'}
+              : '各5分のコマをタップして、定型業務を選択してください（1コマ最大3つ）。'}
           </p>
         </div>
 
@@ -346,18 +427,11 @@ export const Timeline: React.FC<TimelineProps> = ({
       {/* ⏱️ 画面上で時間枠・シフトを自由に調整できるポップオーバーカード */}
       {showShiftConfig && (
         <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-xl mb-4 border-2 border-sky-400 animate-fadeIn space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+          <div className="border-b border-slate-700 pb-2">
             <div className="flex items-center gap-2 font-bold text-sm text-sky-300">
               <Clock className="w-4 h-4" />
               <span>勤務時間枠・シフトの変更</span>
             </div>
-            <button
-              type="button"
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-              onClick={() => setShowShiftConfig(false)}
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
 
           <div className="space-y-3 pt-1">
@@ -418,50 +492,120 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
       )}
 
-      {/* 3. 早出追加ボタン (8:30以前) */}
-      <div className="overtime-add-wrapper">
-        <button className="btn-add-overtime" onClick={onAddEarlySlot}>
-          <PlusCircle className="w-4 h-4 text-sky-600" />
-          <span>＋ 早出の時間外枠を追加 (15分前に拡張)</span>
+      {/* 3.1 1時間一括グループ化／5分詳細一括展開コントロールバー */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <button
+          type="button"
+          className="py-2.5 px-3 bg-sky-50 hover:bg-sky-100 border-2 border-sky-300 text-sky-950 font-black rounded-2xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer"
+          onClick={collapseAllHours}
+          title="全時間帯を1時間単位にたたんでスッキリ表示します"
+        >
+          <Folder className="w-4 h-4 text-sky-600 shrink-0" />
+          <span>📁 1時間ごとにまとめる</span>
+        </button>
+
+        <button
+          type="button"
+          className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 text-emerald-950 font-black rounded-2xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer"
+          onClick={expandAllHours}
+          title="全時間帯の5分ごとの詳細コマを展開します"
+        >
+          <FolderOpen className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>📄 5分詳細を全展開</span>
         </button>
       </div>
 
-      {/* 4. 15分タイムスロットリスト */}
-      <div className="slots-list">
-        {slots.map((slot) => {
-          const isFilled = slot.selectedTaskIds.length > 0;
-          const selectedTasks = slot.selectedTaskIds
+      {/* 3.2 早出追加ボタン (8:30以前) */}
+      <div className="overtime-add-wrapper mb-4">
+        <button className="btn-add-overtime" onClick={onAddEarlySlot}>
+          <PlusCircle className="w-4 h-4 text-sky-600" />
+          <span>＋ 早出の時間外枠を追加 (5分前に拡張)</span>
+        </button>
+      </div>
+
+      {/* 4. 1時間グループ化 タイムスロットリスト */}
+      <div className="space-y-4">
+        {hourGroups.map((group) => {
+          const isExpanded = !!expandedHourKeys[group.hourKey];
+          const isGroupCompleted = group.filledCount === group.totalCount;
+          const groupTasks = group.uniqueTaskIds
             .map((id) => taskMap.get(id))
             .filter((t): t is typeof PRESET_TASKS[0] => t !== undefined);
 
           return (
             <div
-              key={slot.id}
-              className={`slot-card ${isFilled ? 'filled' : 'unfilled-highlight'} ${
-                slot.isOvertime ? 'overtime-slot' : ''
+              key={group.hourKey}
+              className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden shadow-sm ${
+                isGroupCompleted
+                  ? 'border-emerald-300 bg-emerald-50/40'
+                  : group.filledCount > 0
+                  ? 'border-sky-300 bg-sky-50/40'
+                  : 'border-slate-300 bg-white'
               }`}
-              onClick={() => onSlotClick(slot)}
             >
-              {/* 時間ラベル */}
-              <div className="slot-time-col">
-                <span className="time-range">
-                  {slot.startTime} - {slot.endTime}
-                </span>
-                {slot.isOvertime && (
-                  <span className="overtime-tag">
-                    {slot.overtimeType === 'early' ? '早出' : '残業'}
-                  </span>
-                )}
+              {/* 1時間グループヘッダー */}
+              <div
+                className="p-3.5 md:p-4 flex items-center justify-between gap-3 cursor-pointer select-none bg-slate-900 text-white rounded-t-2xl border-b border-slate-800"
+                onClick={() => toggleHourExpand(group.hourKey)}
+              >
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-base md:text-lg font-black text-sky-300">
+                    <Clock className="w-5 h-5 text-sky-400 shrink-0" />
+                    <span>{group.hourLabel}</span>
+                  </div>
+
+                  {/* ➕ 展開 / ➖ まとめる ボタン（統一ボタンUI） */}
+                  <button
+                    type="button"
+                    className={`px-3 py-1.5 rounded-xl font-black text-xs md:text-sm flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer ${
+                      isExpanded
+                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600'
+                        : 'bg-sky-600 hover:bg-sky-500 text-white border border-sky-400'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleHourExpand(group.hourKey);
+                    }}
+                    title={isExpanded ? 'グループ化して折りたたむ' : '5分ごとの詳細を表示'}
+                  >
+                    {isExpanded ? (
+                      <>
+                        <span className="text-base font-black leading-none">−</span>
+                        <span>まとめる</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-base font-black leading-none">＋</span>
+                        <span>展開 (5分詳細)</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* ステータスバッジ (完了または入力済みのみ表示) */}
+                  {isGroupCompleted ? (
+                    <span className="bg-emerald-500 text-white font-extrabold px-3 py-0.5 rounded-full text-xs flex items-center gap-1 shadow-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      完了
+                    </span>
+                  ) : group.filledCount > 0 ? (
+                    <span className="bg-sky-600 text-white font-extrabold px-3 py-0.5 rounded-full text-xs shadow-xs">
+                      入力済み ({group.filledCount}/{group.totalCount})
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
-              {/* 選択された業務表示領域 */}
-              <div className="slot-content-col">
-                {isFilled ? (
-                  <div className="selected-tags-flex">
-                    {selectedTasks.map((task) => (
+              {/* グループ折りたたみ状態（設定済み業務タグのみ表示） */}
+              {!isExpanded && groupTasks.length > 0 && (
+                <div
+                  className="p-3 md:p-3.5 bg-white/90 hover:bg-sky-50/50 cursor-pointer transition-colors flex items-center justify-between gap-2 border-t border-slate-100"
+                  onClick={() => toggleHourExpand(group.hourKey)}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {groupTasks.map((task) => (
                       <span
                         key={task.id}
-                        className="slot-task-badge"
+                        className="slot-task-badge text-xs"
                         style={{
                           backgroundColor: task.badgeBg,
                           color: task.color,
@@ -472,35 +616,92 @@ export const Timeline: React.FC<TimelineProps> = ({
                       </span>
                     ))}
                   </div>
-                ) : (
-                  <div className="unfilled-prompt">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 animate-pulse" />
-                    <span className="unfilled-text">未入力コマ（タップして選択）</span>
-                  </div>
-                )}
-              </div>
-
-              {/* 右側操作エリア (削除ボタン & 右矢印) */}
-              <div className="slot-action-col">
-                {onDeleteSlot && (
-                  <button
-                    type="button"
-                    className="btn-slot-delete"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`${slot.startTime}〜${slot.endTime} の時間帯枠を削除しますか？`)) {
-                        onDeleteSlot(slot.id);
-                      }
-                    }}
-                    title="この時間帯枠を削除"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-                <div className="slot-arrow">
-                  <ChevronRight className="w-5 h-5 text-slate-400" />
                 </div>
-              </div>
+              )}
+
+              {/* 5分詳細展開状態（12コマリスト） */}
+              {isExpanded && (
+                <div className="p-3 bg-slate-50 border-t border-slate-200 space-y-2 animate-fadeIn">
+                  <div className="slots-list space-y-2">
+                    {group.slots.map((slot) => {
+                      const isFilled = slot.selectedTaskIds.length > 0;
+                      const selectedTasks = slot.selectedTaskIds
+                        .map((id) => taskMap.get(id))
+                        .filter((t): t is typeof PRESET_TASKS[0] => t !== undefined);
+
+                      return (
+                        <div
+                          key={slot.id}
+                          className={`slot-card ${isFilled ? 'filled' : 'unfilled-highlight'} ${
+                            slot.isOvertime ? 'overtime-slot' : ''
+                          }`}
+                          onClick={() => onSlotClick(slot)}
+                        >
+                          {/* 時間ラベル */}
+                          <div className="slot-time-col">
+                            <span className="time-range">
+                              {slot.startTime} - {slot.endTime}
+                            </span>
+                            {slot.isOvertime && (
+                              <span className="overtime-tag">
+                                {slot.overtimeType === 'early' ? '早出' : '残業'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 選択された業務表示領域 */}
+                          <div className="slot-content-col">
+                            {isFilled ? (
+                              <div className="selected-tags-flex">
+                                {selectedTasks.map((task) => (
+                                  <span
+                                    key={task.id}
+                                    className="slot-task-badge"
+                                    style={{
+                                      backgroundColor: task.badgeBg,
+                                      color: task.color,
+                                      borderColor: task.color,
+                                    }}
+                                  >
+                                    {task.name}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="unfilled-prompt">
+                                <AlertTriangle className="w-4 h-4 text-amber-600 animate-pulse" />
+                                <span className="unfilled-text">未入力コマ（タップして選択）</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 右側操作エリア (削除ボタン & 右矢印) */}
+                          <div className="slot-action-col">
+                            {onDeleteSlot && (
+                              <button
+                                type="button"
+                                className="btn-slot-delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`${slot.startTime}〜${slot.endTime} の時間帯枠を削除しますか？`)) {
+                                    onDeleteSlot(slot.id);
+                                  }
+                                }}
+                                title="この時間帯枠を削除"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <div className="slot-arrow">
+                              <ChevronRight className="w-5 h-5 text-slate-400" />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -511,7 +712,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div className="overtime-add-wrapper my-6">
           <button className="btn-add-overtime" onClick={onAddLateSlot}>
             <PlusCircle className="w-4 h-4 text-purple-600" />
-            <span>＋ 残業・時間外枠を追加 (15分後に拡張)</span>
+            <span>＋ 残業・時間外枠を追加 (5分後に拡張)</span>
           </button>
         </div>
       )}

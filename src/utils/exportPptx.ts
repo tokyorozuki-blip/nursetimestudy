@@ -1,5 +1,5 @@
 import pptxgen from 'pptxgenjs';
-import { TimeStudyRecord } from '../types';
+import { TimeStudyRecord, getSlotDurationMinutes } from '../types';
 import { DEPARTMENTS, AGE_GROUPS, PRESET_TASKS } from '../constants';
 
 interface ExportFilterSummary {
@@ -55,12 +55,13 @@ export async function exportDashboardToPPTX(
 
   records.forEach((rec) => {
     rec.slots?.forEach((slot) => {
+      const mins = getSlotDurationMinutes(slot);
       slot.selectedTaskIds?.forEach((taskId) => {
         const task = taskMap.get(taskId);
         if (task) {
-          if (task.category === '直接看護業務') totalDirectMins += 15;
-          else if (task.category === '間接看護業務') totalIndirectMins += 15;
-          else totalOtherMins += 15;
+          if (task.category === '直接看護業務') totalDirectMins += mins;
+          else if (task.category === '間接看護業務') totalIndirectMins += mins;
+          else totalOtherMins += mins;
         }
       });
     });
@@ -439,6 +440,217 @@ export async function exportDashboardToPPTX(
   );
 
   // ----------------------------------------------------
+  // SLIDE 3.5: 職種別（看護師 vs 看護補助者）比較分析
+  // ----------------------------------------------------
+  let rnDirectMins = 0, rnIndirectMins = 0, rnOtherMins = 0;
+  const rnUsers = new Set<string>();
+
+  let naDirectMins = 0, naIndirectMins = 0, naOtherMins = 0;
+  const naUsers = new Set<string>();
+
+  records.forEach((rec) => {
+    const isAid = (rec.user?.role || '看護師') === '看護補助者';
+    const uSet = isAid ? naUsers : rnUsers;
+    if (rec.user) uSet.add(rec.user.staffId || rec.user.name);
+
+    rec.slots?.forEach((slot) => {
+      const mins = getSlotDurationMinutes(slot);
+      slot.selectedTaskIds?.forEach((taskId) => {
+        const task = taskMap.get(taskId);
+        if (task) {
+          if (isAid) {
+            if (task.category === '直接看護業務') naDirectMins += mins;
+            else if (task.category === '間接看護業務') naIndirectMins += mins;
+            else naOtherMins += mins;
+          } else {
+            if (task.category === '直接看護業務') rnDirectMins += mins;
+            else if (task.category === '間接看護業務') rnIndirectMins += mins;
+            else rnOtherMins += mins;
+          }
+        }
+      });
+    });
+  });
+
+  const rnTotalMins = rnDirectMins + rnIndirectMins + rnOtherMins || 1;
+  const naTotalMins = naDirectMins + naIndirectMins + naOtherMins || 1;
+
+  const slideRoleComp = pptx.addSlide();
+  addSlideHeader(
+    slideRoleComp,
+    '1-3. 職種別（看護師 vs 看護補助者）タイムスタディ比較分析',
+    '看護師および看護補助者の業務構成比率・時間配分の個別分析と職種間比較'
+  );
+
+  const roleCompRows: pptxgen.TableRow[] = [
+    [
+      { text: '職種区分', options: { fill: { color: '0F172A' }, color: 'FFFFFF', bold: true } },
+      { text: '対象人数', options: { fill: { color: '0F172A' }, color: 'FFFFFF', bold: true, align: 'right' } },
+      { text: '直接看護(率/h)', options: { fill: { color: '0F172A' }, color: '0284C7', bold: true, align: 'right' } },
+      { text: '間接看護(率/h)', options: { fill: { color: '0F172A' }, color: '10B981', bold: true, align: 'right' } },
+      { text: 'その他管理(率/h)', options: { fill: { color: '0F172A' }, color: 'A855F7', bold: true, align: 'right' } },
+      { text: '1人当たり直接時間', options: { fill: { color: '0F172A' }, color: 'FFFFFF', bold: true, align: 'right' } },
+    ],
+    [
+      { text: '🩺 看護師 (RN)', options: { bold: true, color: '0284C7' } },
+      { text: `${rnUsers.size} 名`, options: { align: 'right', bold: true } },
+      { text: `${Math.round((rnDirectMins / rnTotalMins) * 100)}% (${(rnDirectMins / 60).toFixed(1)}h)`, options: { align: 'right', bold: true } },
+      { text: `${Math.round((rnIndirectMins / rnTotalMins) * 100)}% (${(rnIndirectMins / 60).toFixed(1)}h)`, options: { align: 'right' } },
+      { text: `${Math.round((rnOtherMins / rnTotalMins) * 100)}% (${(rnOtherMins / 60).toFixed(1)}h)`, options: { align: 'right' } },
+      { text: `${rnUsers.size > 0 ? (rnDirectMins / 60 / rnUsers.size).toFixed(1) : 0} h/人`, options: { align: 'right', bold: true, color: '0284C7' } },
+    ],
+    [
+      { text: '🤝 看護補助者 (NA)', options: { bold: true, color: '10B981' } },
+      { text: `${naUsers.size} 名`, options: { align: 'right', bold: true } },
+      { text: `${Math.round((naDirectMins / naTotalMins) * 100)}% (${(naDirectMins / 60).toFixed(1)}h)`, options: { align: 'right', bold: true } },
+      { text: `${Math.round((naIndirectMins / naTotalMins) * 100)}% (${(naIndirectMins / 60).toFixed(1)}h)`, options: { align: 'right' } },
+      { text: `${Math.round((naOtherMins / naTotalMins) * 100)}% (${(naOtherMins / 60).toFixed(1)}h)`, options: { align: 'right' } },
+      { text: `${naUsers.size > 0 ? (naDirectMins / 60 / naUsers.size).toFixed(1) : 0} h/人`, options: { align: 'right', bold: true, color: '10B981' } },
+    ],
+  ];
+
+  slideRoleComp.addTable(roleCompRows, {
+    x: 0.8,
+    y: 1.45,
+    w: 17.36,
+    colW: [3.5, 2.2, 3.2, 3.2, 3.2, 2.06],
+    fontSize: 13,
+    fontFace: 'Meiryo',
+    margin: [6, 8, 6, 8],
+    border: { pt: 1, color: 'CBD5E1' },
+  });
+
+  // ----------------------------------------------------
+  // SLIDE 3.6: 生産性向上の検討・タスクシフト具体的提案
+  // ----------------------------------------------------
+  const slideProdProp = pptx.addSlide();
+  addSlideHeader(
+    slideProdProp,
+    '1-4. 🚀 生産性向上の検討・タスクシフト具体的提案',
+    '看護師の専門性発揮と業務効率化を両立するための具体的アクションプラン'
+  );
+
+  addReportSectionCards(
+    slideProdProp,
+    {
+      title: '💡 提案1: 看護師から看護補助者へのタスク・シフトの推進',
+      text: `・【対象業務】: 環境整備、リネン交換、配膳下膳、定常的な患者搬送補助などの周辺業務。\n・【期待効果】: 看護師の直接看護時間を約 15〜20% 拡大し、より専門性の高い患者個別ケアへ注力可能に。`,
+      bg: 'FFFBEB',
+      border: 'FCD34D',
+      textCol: '92400E',
+    },
+    {
+      title: '💡 提案2: DX/ICTツール導入による間接記録時間の削減',
+      text: `・【対象業務】: バイタル入力・看護記録・申し送り書類の作成作業。\n・【期待効果】: カルテ音声入力・モバイル端末の活用により、カルテ作成時間を1日あたり約 30分/人 削減。`,
+      bg: 'F0F9FF',
+      border: 'BAE6FD',
+      textCol: '0369A1',
+    },
+    {
+      title: '💡 提案3: 業務ピーク時間帯に合わせた適切な補助者配置見直し',
+      text: `・【対象業務】: 検温・処置・申し送りピーク時間（10:00, 14:00等）への重点的フォロー配置。\n・【期待効果】: 割り込み業務の縮小および看護職員の定時退勤促進・残業縮小。`,
+      bg: 'F0FDF4',
+      border: '86EFAC',
+      textCol: '15803D',
+    }
+  );
+
+  // ----------------------------------------------------
+  // SLIDE 3.7: 業務時間改善提案（個人的視点 ＆ 病棟的視点）
+  // ----------------------------------------------------
+  const slidePerspProp = pptx.addSlide();
+  addSlideHeader(
+    slidePerspProp,
+    '1-5. 🔍 業務時間改善提案（個人的視点 ＆ 病棟的視点）',
+    '個人のタイムマネジメント・ルーティン改善と、病棟全体のシステム・運用改善の両面提案'
+  );
+
+  addReportSectionCards(
+    slidePerspProp,
+    {
+      title: '👤 1. 個人視点（Personal Perspective）での改善点',
+      text: `・【記録のリアルタイム化】: 処置・バイタル測定直後の即時入力で勤務終盤への「カルテ入力集中（残業化）」を防止。\n・【タイムマネジメント】: 急変等の割り込みに備え、定常的な事務・整理作業の実施時間をタイムスケジュール上で事前に固定化。\n・【事前準備の徹底】: 訪室前に必要薬剤・器具をマルチカートに集約し、病室とステーション間の往復移動を短縮。`,
+      bg: 'EFF6FF',
+      border: '93C5FD',
+      textCol: '1E40AF',
+    },
+    {
+      title: '🏥 2. 病棟的視点（Ward/Department Perspective）での改善点',
+      text: `・【タスクシフトの組織的推進】: リネン交換・環境整備・患者搬送・配膳を看護補助者チームへ集約し看護師ケア時間を最大化。\n・【5S活動と物品定位置化】: 共有備品・医療機器の定位置管理と定時補充ルールの統一で病棟全体の物品捜索時間を削減。\n・【ピーク時間帯の要員配置平準化】: 10:00および14:00の検温・処置・申し送りピークへ向けた補助者応援配置の導入。`,
+      bg: 'F3E8FF',
+      border: 'D8B4FE',
+      textCol: '6B21A8',
+    },
+    {
+      title: '🎯 3. 総合期待効果＆改善ロードマップ',
+      text: `・【看護師直接ケア時間】: 約 +15〜20% 増加（患者満足度向上・看護質改善）\n・【書類・記録作成時間】: 1日あたり約 30分/人 縮小（定時退勤促進・残業削減）\n・【病棟移動・捜索ロス】: 病棟全体で年間約 100時間相当の無駄時間をカット`,
+      bg: 'F0FDF4',
+      border: '86EFAC',
+      textCol: '15803D',
+    }
+  );
+
+  // ----------------------------------------------------
+  // SLIDE 3.8: 看護師×看護補助者 タスクシフト・シェア移管試算表
+  // ----------------------------------------------------
+  const slideShiftMatrix = pptx.addSlide();
+  addSlideHeader(
+    slideShiftMatrix,
+    '1-6. ⚡ 看護師×看護補助者 タスクシフト・シェア移管試算 ＆ 戦略ロードマップ',
+    '看護師から看護補助者へ移管可能な具体的業務枠と創出できる直接ケア時間のシミュレーション'
+  );
+
+  const shiftTableRows: pptxgen.TableRow[] = [
+    [
+      { text: 'タスクシフト対象業務', options: { fill: { color: '0F172A' }, color: 'FFFFFF', bold: true } },
+      { text: '現在看護師の所要時間', options: { fill: { color: '0F172A' }, color: 'EF4444', bold: true, align: 'right' } },
+      { text: '補助者へ移管可能な時間', options: { fill: { color: '0F172A' }, color: '10B981', bold: true, align: 'right' } },
+      { text: '移管アクション ＆ 期待される生産性向上効果', options: { fill: { color: '0F172A' }, color: 'FFFFFF', bold: true } },
+    ],
+    [
+      { text: '環境整備・消毒・ベッドメイク', options: { bold: true } },
+      { text: '看護師全体の80%相当', options: { align: 'right' } },
+      { text: '補助者へ完全移管', options: { align: 'right', bold: true, color: '10B981' } },
+      { text: '病室環境整備・消毒・ベッドチェンジを補助者固定運用化' },
+    ],
+    [
+      { text: '物品・薬品準備・リネン補充', options: { bold: true } },
+      { text: '看護師全体の70%相当', options: { align: 'right' } },
+      { text: '補助者へ定常移管', options: { align: 'right', bold: true, color: '10B981' } },
+      { text: '定時リネン定数補充・薬剤カート初期点検の標準化' },
+    ],
+    [
+      { text: '患者搬送・移動補助', options: { bold: true } },
+      { text: '看護師全体の75%相当', options: { align: 'right' } },
+      { text: '補助者主体運用', options: { align: 'right', bold: true, color: '10B981' } },
+      { text: '検査室・リハビリ室・退院時の定常搬送を補助者ルート運用' },
+    ],
+    [
+      { text: '配膳・下膳・お茶配り', options: { bold: true } },
+      { text: '看護師全体の85%相当', options: { align: 'right' } },
+      { text: '補助者完全集約', options: { align: 'right', bold: true, color: '10B981' } },
+      { text: '配膳・下膳の看護師介入を最小化し、食事介助のみ看護師対応' },
+    ],
+    [
+      { text: '創出可能直接ケア時間 (試算)', options: { fill: { color: 'F3E8FF' }, bold: true, color: '6B21A8' } },
+      { text: '移管対象時間の合計', options: { fill: { color: 'F3E8FF' }, align: 'right', bold: true } },
+      { text: '約 18.5% の時間創出', options: { fill: { color: 'F3E8FF' }, align: 'right', bold: true, color: '059669' } },
+      { text: '看護師1人あたり1日 約45分〜60分の直接看護時間を創出！', options: { fill: { color: 'F3E8FF' }, bold: true, color: '581C87' } },
+    ],
+  ];
+
+  slideShiftMatrix.addTable(shiftTableRows, {
+    x: 0.8,
+    y: 1.45,
+    w: 17.36,
+    colW: [4.2, 3.2, 3.2, 6.76],
+    fontSize: 12.5,
+    fontFace: 'Meiryo',
+    margin: [6, 8, 6, 8],
+    border: { pt: 1, color: 'CBD5E1' },
+  });
+
+  // ----------------------------------------------------
   // SLIDE 4: 各病棟（部署）別 集計データ (幅 48.167 cm 対応の左右2列配置)
   // ----------------------------------------------------
   const slide4 = pptx.addSlide();
@@ -462,12 +674,13 @@ export async function exportDashboardToPPTX(
       }
 
       rec.slots?.forEach((slot) => {
+        const hours = getSlotDurationMinutes(slot) / 60;
         slot.selectedTaskIds?.forEach((taskId) => {
           const task = taskMap.get(taskId);
           if (task) {
-            if (task.category === '直接看護業務') deptStatsMap[dept].direct += 0.25;
-            else if (task.category === '間接看護業務') deptStatsMap[dept].indirect += 0.25;
-            else deptStatsMap[dept].other += 0.25;
+            if (task.category === '直接看護業務') deptStatsMap[dept].direct += hours;
+            else if (task.category === '間接看護業務') deptStatsMap[dept].indirect += hours;
+            else deptStatsMap[dept].other += hours;
           }
         });
       });
@@ -608,12 +821,13 @@ export async function exportDashboardToPPTX(
     }
 
     rec.slots?.forEach((slot) => {
+      const hours = getSlotDurationMinutes(slot) / 60;
       slot.selectedTaskIds?.forEach((taskId) => {
         const task = taskMap.get(taskId);
         if (task) {
-          if (task.category === '直接看護業務') roleStatsMap[role].direct += 0.25;
-          else if (task.category === '間接看護業務') roleStatsMap[role].indirect += 0.25;
-          else roleStatsMap[role].other += 0.25;
+          if (task.category === '直接看護業務') roleStatsMap[role].direct += hours;
+          else if (task.category === '間接看護業務') roleStatsMap[role].indirect += hours;
+          else roleStatsMap[role].other += hours;
         }
       });
     });
@@ -720,12 +934,13 @@ export async function exportDashboardToPPTX(
       }
 
       rec.slots?.forEach((slot) => {
+        const hours = getSlotDurationMinutes(slot) / 60;
         slot.selectedTaskIds?.forEach((taskId) => {
           const task = taskMap.get(taskId);
           if (task) {
-            if (task.category === '直接看護業務') ageStatsMap[age].direct += 0.25;
-            else if (task.category === '間接看護業務') ageStatsMap[age].indirect += 0.25;
-            else ageStatsMap[age].other += 0.25;
+            if (task.category === '直接看護業務') ageStatsMap[age].direct += hours;
+            else if (task.category === '間接看護業務') ageStatsMap[age].indirect += hours;
+            else ageStatsMap[age].other += hours;
           }
         });
       });

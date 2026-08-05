@@ -290,7 +290,7 @@ export const PRESET_TASKS: TaskItem[] = [
   },
 ];
 
-// 勤務時間 (日勤 08:30~17:15 / 夜勤 16:30~翌09:30 / その他カスタム時間) の15分刻みスロット生成ロジック
+// 勤務時間 (日勤 08:30~17:15 / 夜勤 16:30~翌09:30 / その他カスタム時間) の5分刻みスロット生成ロジック
 export function generateDefaultTimeSlots(
   shiftType: ShiftType = 'day',
   customStartTime?: string,
@@ -325,7 +325,7 @@ export function generateDefaultTimeSlots(
   let currentTotalMinutes = startTotalMinutes;
 
   while (currentTotalMinutes < endTotalMinutes) {
-    const nextTotalMinutes = currentTotalMinutes + 15;
+    const nextTotalMinutes = currentTotalMinutes + 5;
 
     const actualStartM = currentTotalMinutes % (24 * 60);
     const startH = String(Math.floor(actualStartM / 60)).padStart(2, '0');
