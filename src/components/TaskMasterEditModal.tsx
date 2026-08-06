@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { TaskItem, TaskCategory, JobRole } from '../types';
 import { PRESET_TASKS } from '../constants';
-import { exportTaskMasterToCSV, parseTaskMasterCSV } from '../utils/taskCsv';
+import { exportTaskMasterToCSV, parseTaskMasterCSV, readCsvFileText } from '../utils/taskCsv';
 import { Plus, Trash2, RotateCcw, Check, X, Edit2, Download, Upload } from 'lucide-react';
 
 interface TaskMasterEditModalProps {
@@ -14,10 +14,9 @@ const COLOR_PRESETS = [
   { color: '#0284c7', badgeBg: '#e0f2fe', label: 'スカイブルー' },
   { color: '#0f766e', badgeBg: '#ccfbf1', label: 'エメラルド' },
   { color: '#15803d', badgeBg: '#dcfce7', label: 'グリーン' },
-  { color: '#d97706', badgeBg: '#fef3c7', label: 'アンバー' },
-  { color: '#4338ca', badgeBg: '#e0e7ff', label: 'インディゴ' },
-  { color: '#9333ea', badgeBg: '#f3e8ff', label: 'パープル' },
-  { color: '#e11d48', badgeBg: '#ffe4e6', label: 'ローズ' },
+  { color: '#b45309', badgeBg: '#fef3c7', label: 'アンバー' },
+  { color: '#6b21a8', badgeBg: '#f3e8ff', label: 'パープル' },
+  { color: '#be123c', badgeBg: '#ffe4e6', label: 'ローズ' },
   { color: '#475569', badgeBg: '#f1f5f9', label: 'スレート' },
 ];
 
@@ -26,19 +25,50 @@ export const TaskMasterEditModal: React.FC<TaskMasterEditModalProps> = ({
   onSaveTasks,
   onClose,
 }) => {
-  const [tasks, setTasks] = useState<TaskItem[]>(
-    currentTasks && currentTasks.length > 0 ? currentTasks : PRESET_TASKS
-  );
+  const [tasks, setTasks] = useState<TaskItem[]>(currentTasks);
   const [activeRole, setActiveRole] = useState<JobRole>('看護師');
-  const [statusMsg, setStatusMsg] = useState<string>('');
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 新規追加フォーム
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<TaskCategory>('直接看護業務');
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
   const [newTaskName, setNewTaskName] = useState<string>('');
   const [newTaskCategory, setNewTaskCategory] = useState<TaskCategory>('直接看護業務');
   const [newTaskColorIdx, setNewTaskColorIdx] = useState<number>(0);
+  const [statusMsg, setStatusMsg] = useState<string>('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // CSVファイルのアップロード・反映
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const csvText = await readCsvFileText(file);
+      if (!csvText || !csvText.trim()) {
+        alert('CSVファイルが空か、正常に読み込めませんでした。');
+        return;
+      }
+
+      const { tasks: parsedTasks, errors } = parseTaskMasterCSV(csvText);
+      if (parsedTasks.length === 0) {
+        alert(errors[0] || 'CSVファイルの解析に失敗しました。有効な定型業務データが見つかりません。');
+        return;
+      }
+
+      setTasks(parsedTasks);
+      const msg = `✅ CSVファイルから全${parsedTasks.length}件の業務マスターを正常に取り込みました！「設定内容を保存して確定」ボタンで保存してください。${
+        errors.length > 0 ? ` (注記: ${errors.join(', ')})` : ''
+      }`;
+      setStatusMsg(msg);
+      alert(`✅ CSVから全 ${parsedTasks.length} 件の業務マスターを取り込みました。`);
+    } catch (err: any) {
+      console.error('CSV Import Error:', err);
+      alert(`CSVファイルの取り込み中にエラーが発生しました: ${err?.message || err}`);
+    } finally {
+      e.target.value = '';
+    }
+  };
 
   // 業務名の編集
   const handleTaskNameChange = (id: string, newName: string) => {
@@ -83,32 +113,6 @@ export const TaskMasterEditModal: React.FC<TaskMasterEditModalProps> = ({
     setTasks((prev) => [...prev, newTask]);
     setNewTaskName('');
     setShowAddForm(false);
-  };
-
-  // CSVファイルのアップロード・反映
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const csvText = event.target?.result as string;
-      if (!csvText) return;
-
-      const { tasks: parsedTasks, errors } = parseTaskMasterCSV(csvText);
-      if (parsedTasks.length === 0) {
-        alert(errors[0] || 'CSVファイルの解析に失敗しました。');
-        return;
-      }
-
-      setTasks(parsedTasks);
-      const msg = `✅ CSVファイルから全${parsedTasks.length}件の業務マスターを読み込んで反映しました！${
-        errors.length > 0 ? ` (注記: ${errors.join(', ')})` : ''
-      }`;
-      setStatusMsg(msg);
-    };
-    reader.readAsText(file, 'UTF-8');
-    e.target.value = '';
   };
 
   // デフォルト初期状態にリセット

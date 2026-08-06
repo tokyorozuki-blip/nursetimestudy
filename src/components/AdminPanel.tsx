@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { TimeStudyRecord, TaskItem, CategoryGroup, JobRole, UserProfile, Department, AgeGroup } from '../types';
 import { DEPARTMENTS, AGE_GROUPS, PRESET_TASKS } from '../constants';
 import { Dashboard } from './Dashboard';
 import { exportRecordsToCSV } from '../utils/exportCsv';
-import { exportTaskMasterToCSV, parseTaskMasterCSV } from '../utils/taskCsv';
+import { exportTaskMasterToCSV, parseTaskMasterCSV, readCsvFileText } from '../utils/taskCsv';
 import {
   getDeptTargets,
   saveDeptTargets,
@@ -95,6 +95,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ユーザー削除確認モーダルステート
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
+
+  // 業務マスター直接CSV取込用
+  const masterFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAdminCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const csvText = await readCsvFileText(file);
+      if (!csvText || !csvText.trim()) {
+        alert('CSVファイルが空か、正常に読み込めませんでした。');
+        return;
+      }
+
+      const { tasks: parsedTasks, errors } = parseTaskMasterCSV(csvText);
+      if (parsedTasks.length === 0) {
+        alert(errors[0] || 'CSVファイルの解析に失敗しました。有効な定型業務データが見つかりません。');
+        return;
+      }
+
+      if (
+        window.confirm(
+          `CSVファイルから全 ${parsedTasks.length} 件の定型業務マスターを検出しました。現在の業務マスターを上書き保存しますか？`
+        )
+      ) {
+        if (onSaveTasks) {
+          onSaveTasks(parsedTasks);
+        }
+        alert(
+          `✅ CSVファイルから全 ${parsedTasks.length} 件の業務マスターを取り込み、保存完了しました！${
+            errors.length > 0 ? `\n(注記: ${errors.join(', ')})` : ''
+          }`
+        );
+      }
+    } catch (err: any) {
+      console.error('Master CSV Import Error:', err);
+      alert(`CSVファイルの取り込み中にエラーが発生しました: ${err?.message || err}`);
+    } finally {
+      e.target.value = '';
+    }
+  };
 
   // クラウド＆ローカルから最新の登録ユーザーリストを再取得（提出レコード内のユーザーも補完マージ）
   const refreshRegisteredUsers = async () => {
@@ -691,6 +733,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               >
                 <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
                 <span>デフォルト初期業務に戻す</span>
+              </button>
+              <input
+                type="file"
+                ref={masterFileInputRef}
+                accept=".csv"
+                className="hidden"
+                onChange={handleAdminCsvUpload}
+              />
+              <button
+                type="button"
+                className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                onClick={() => masterFileInputRef.current?.click()}
+              >
+                <Upload className="w-3.5 h-3.5 text-white" />
+                <span>登録業務CSVを取込</span>
               </button>
               {onOpenEditMaster && (
                 <button
